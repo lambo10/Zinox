@@ -13,14 +13,20 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zinox.app"
+      "bundleIdentifier": "com.zinox.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B0D17"
       },
-      "package": "com.zinox.app"
+      "package": "com.zinox.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -42,6 +48,11 @@
           "cameraPermission": "Allow Zinox to access your camera to take a profile photo."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b9ecf48d-956c-4361-bbf8-93ee72832cd9"
+      }
+    }
   }
 }
