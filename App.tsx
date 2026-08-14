@@ -5,6 +5,7 @@ import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/b
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
+import { BlurView } from 'expo-blur';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -90,6 +91,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
 const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const themeMode = useZinoxStore((s) => s.themeMode);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerPadding = 4;
   const tabWidth = containerWidth > 0 ? (containerWidth - containerPadding * 2) / state.routes.length : 0;
@@ -120,11 +122,16 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
         { paddingBottom: Math.max(insets.bottom, 12) },
       ]}
     >
-      <View
+      <BlurView
+        intensity={85}
+        tint={themeMode === 'dark' ? 'dark' : 'light'}
         style={[
           styles.tabBarContainer,
           SHADOWS.iosFloat,
-          { backgroundColor: colors.cardBgGlass, borderColor: colors.cardBorder },
+          {
+            backgroundColor: themeMode === 'dark' ? 'rgba(20, 24, 41, 0.65)' : 'rgba(255, 255, 255, 0.70)',
+            borderColor: colors.cardBorder,
+          },
         ]}
         onLayout={handleLayout}
       >
@@ -205,7 +212,7 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigat
             </AnimatedPressable>
           );
         })}
-      </View>
+      </BlurView>
     </View>
   );
 };
