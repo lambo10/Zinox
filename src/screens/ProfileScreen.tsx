@@ -31,8 +31,15 @@ import { pickImageFromLibrary, takePhotoWithCamera } from '../services/imagePick
 import { triggerLocalNotification } from '../services/notificationService';
 
 export const ProfileScreen: React.FC = () => {
-  const { user, updateAvatar, notificationsEnabled, toggleNotifications, resetDailyMetrics } =
-    useZinoxStore();
+  const {
+    user,
+    userEmail,
+    updateAvatar,
+    notificationsEnabled,
+    toggleNotifications,
+    resetDailyMetrics,
+    signOut,
+  } = useZinoxStore();
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const handlePickLibrary = async () => {
@@ -210,6 +217,11 @@ export const ProfileScreen: React.FC = () => {
           <Trash2 color={COLORS.danger} size={18} />
           <Text style={styles.dangerBtnText}>Reset Today's Balance Progress</Text>
         </TouchableOpacity>
+
+        {/* Sign Out Button */}
+        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
+          <Text style={styles.signOutBtnText}>Sign Out of Zinox</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Photo Choice Modal */}
@@ -251,6 +263,8 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: '100%',
+    width: '100%',
     backgroundColor: COLORS.background,
   },
   scrollContent: {
@@ -464,6 +478,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.danger,
+  },
+  signOutBtn: {
+    backgroundColor: COLORS.cardBg,
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  signOutBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   modalOverlay: {
     flex: 1,

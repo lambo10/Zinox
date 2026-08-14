@@ -1,5 +1,9 @@
-import 'react-native-url-polyfill/auto';
+import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
+
+if (Platform.OS !== 'web') {
+  require('react-native-url-polyfill/auto');
+}
 
 export const SUPABASE_URL = 'https://tefvknjmgafecdjdffiu.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_DOZYYTKQYlPZ618A0hHFCg_etYACexP';

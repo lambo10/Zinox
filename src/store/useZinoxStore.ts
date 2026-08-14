@@ -3,6 +3,9 @@ import {
   syncProfileToSupabase,
   logBalanceMetricsToSupabase,
   logUpskillProgressToSupabase,
+  fetchUserProfileFromSupabase,
+  fetchTodayBalanceLogs,
+  signOutUser,
 } from '../services/apiService';
 
 export interface Lesson {
@@ -27,7 +30,7 @@ export interface UpskillCourse {
   description: string;
   duration: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  progress: number; // 0 to 100
+  progress: number;
   completed: boolean;
   lessons: Lesson[];
   quiz: QuizQuestion[];
@@ -43,13 +46,13 @@ export interface UserProfile {
 }
 
 export interface BalanceMetrics {
-  waterDrank: number; // glasses (goal: 8)
+  waterDrank: number;
   waterGoal: number;
-  eyeRests: number; // breaks (goal: 5)
+  eyeRests: number;
   eyeRestGoal: number;
-  stretchesDone: number; // sessions (goal: 3)
+  stretchesDone: number;
   stretchGoal: number;
-  focusMinutes: number; // total focus today
+  focusMinutes: number;
   screenTimeMinutes: number;
 }
 
@@ -60,6 +63,11 @@ export interface DailyQuote {
 }
 
 interface ZinoxState {
+  session: any;
+  userId: string | null;
+  userEmail: string | null;
+  authLoading: boolean;
+
   user: UserProfile;
   metrics: BalanceMetrics;
   courses: UpskillCourse[];
@@ -68,6 +76,10 @@ interface ZinoxState {
   activeCourseId: string | null;
 
   // Actions
+  setSession: (session: any) => void;
+  signOut: () => Promise<void>;
+  loadUserDataFromBackend: (userId: string) => Promise<void>;
+
   updateAvatar: (uri: string | null) => void;
   updateUserProfile: (name: string, title: string) => void;
   logWater: () => void;
@@ -253,6 +265,11 @@ const INITIAL_COURSES: UpskillCourse[] = [
 ];
 
 export const useZinoxStore = create<ZinoxState>((set, get) => ({
+  session: null,
+  userId: null,
+  userEmail: null,
+  authLoading: true,
+
   user: {
     name: 'Alex Vance',
     title: 'Senior Software Architect',
@@ -280,17 +297,51 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
   notificationsEnabled: true,
   activeCourseId: null,
 
+  setSession: (session) => {
+    const userId = session?.user?.id || null;
+    const email = session?.user?.email || null;
+    set({ session, userId, userEmail: email, authLoading: false });
+
+    if (userId) {
+      get().loadUserDataFromBackend(userId);
+    }
+  },
+
+  signOut: async () => {
+    await signOutUser();
+    set({
+      session: null,
+      userId: null,
+      userEmail: null,
+      authLoading: false,
+    });
+  },
+
+  loadUserDataFromBackend: async (userId: string) => {
+    // 1. Fetch Profile
+    const backendProfile = await fetchUserProfileFromSupabase(userId);
+    if (backendProfile) {
+      set((state) => ({ user: { ...state.user, ...backendProfile } }));
+    }
+
+    // 2. Fetch Balance Logs
+    const backendLogs = await fetchTodayBalanceLogs(userId);
+    if (backendLogs) {
+      set((state) => ({ metrics: { ...state.metrics, ...backendLogs } }));
+    }
+  },
+
   updateAvatar: (uri) =>
     set((state) => {
       const updatedUser = { ...state.user, avatar: uri };
-      syncProfileToSupabase(updatedUser);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { user: updatedUser };
     }),
 
   updateUserProfile: (name, title) =>
     set((state) => {
       const updatedUser = { ...state.user, name, title };
-      syncProfileToSupabase(updatedUser);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { user: updatedUser };
     }),
 
@@ -299,8 +350,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       const newWater = Math.min(state.metrics.waterDrank + 1, state.metrics.waterGoal + 4);
       const updatedMetrics = { ...state.metrics, waterDrank: newWater };
       const updatedUser = { ...state.user, points: state.user.points + 25 };
-      logBalanceMetricsToSupabase(updatedMetrics);
-      syncProfileToSupabase(updatedUser);
+      logBalanceMetricsToSupabase(state.userId, updatedMetrics);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { metrics: updatedMetrics, user: updatedUser };
     }),
 
@@ -309,8 +360,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       const newRest = Math.min(state.metrics.eyeRests + 1, state.metrics.eyeRestGoal + 3);
       const updatedMetrics = { ...state.metrics, eyeRests: newRest };
       const updatedUser = { ...state.user, points: state.user.points + 40 };
-      logBalanceMetricsToSupabase(updatedMetrics);
-      syncProfileToSupabase(updatedUser);
+      logBalanceMetricsToSupabase(state.userId, updatedMetrics);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { metrics: updatedMetrics, user: updatedUser };
     }),
 
@@ -319,8 +370,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       const newStretch = Math.min(state.metrics.stretchesDone + 1, state.metrics.stretchGoal + 2);
       const updatedMetrics = { ...state.metrics, stretchesDone: newStretch };
       const updatedUser = { ...state.user, points: state.user.points + 50 };
-      logBalanceMetricsToSupabase(updatedMetrics);
-      syncProfileToSupabase(updatedUser);
+      logBalanceMetricsToSupabase(state.userId, updatedMetrics);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { metrics: updatedMetrics, user: updatedUser };
     }),
 
@@ -331,8 +382,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
         focusMinutes: state.metrics.focusMinutes + minutes,
       };
       const updatedUser = { ...state.user, points: state.user.points + minutes * 2 };
-      logBalanceMetricsToSupabase(updatedMetrics);
-      syncProfileToSupabase(updatedUser);
+      logBalanceMetricsToSupabase(state.userId, updatedMetrics);
+      syncProfileToSupabase(state.userId, updatedUser);
       return { metrics: updatedMetrics, user: updatedUser };
     }),
 
@@ -354,8 +405,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       });
 
       const updatedUser = { ...state.user, points: state.user.points + 50 };
-      logUpskillProgressToSupabase(courseId, lessonId, true);
-      syncProfileToSupabase(updatedUser);
+      logUpskillProgressToSupabase(state.userId, courseId, lessonId, true);
+      syncProfileToSupabase(state.userId, updatedUser);
 
       return {
         courses: updatedCourses,
@@ -371,8 +422,8 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       });
       const bonusPoints = Math.round(scorePercentage * 2);
       const updatedUser = { ...state.user, points: state.user.points + bonusPoints };
-      logUpskillProgressToSupabase(courseId, undefined, true, scorePercentage);
-      syncProfileToSupabase(updatedUser);
+      logUpskillProgressToSupabase(state.userId, courseId, undefined, true, scorePercentage);
+      syncProfileToSupabase(state.userId, updatedUser);
 
       return {
         courses: updatedCourses,
@@ -394,7 +445,7 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
         stretchesDone: 0,
         focusMinutes: 0,
       };
-      logBalanceMetricsToSupabase(updatedMetrics);
+      logBalanceMetricsToSupabase(state.userId, updatedMetrics);
       return { metrics: updatedMetrics };
     }),
 }));

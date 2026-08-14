@@ -25,8 +25,10 @@ export const BalanceScoreCard: React.FC = () => {
     <View style={[styles.container, SHADOWS.card]}>
       {/* Header Row */}
       <View style={styles.topRow}>
-        <View>
-          <Text style={styles.cardTitle}>Work-Life Balance Score</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            Work-Life Balance Score
+          </Text>
           <Text style={styles.scoreSublabel}>{getScoreLabel(balanceScore)}</Text>
         </View>
         <View style={styles.scorePill}>
@@ -39,70 +41,86 @@ export const BalanceScoreCard: React.FC = () => {
         <View style={[styles.meterFill, { width: `${balanceScore}%` }]} />
       </View>
 
-      {/* Metrics Row */}
+      {/* Metrics Grid */}
       <View style={styles.metricsGrid}>
         {/* Hydration */}
         <View style={styles.metricItem}>
-          <View style={[styles.iconBox, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-            <Droplet color={COLORS.secondary} size={18} />
+          <View style={styles.metricItemHeader}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
+              <Droplet color={COLORS.secondary} size={16} />
+            </View>
+            <TouchableOpacity style={styles.plusButton} onPress={logWater} activeOpacity={0.7}>
+              <Plus color={COLORS.secondary} size={14} />
+            </TouchableOpacity>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel}>Water</Text>
-            <Text style={styles.metricValue}>
-              {metrics.waterDrank}/{metrics.waterGoal} <Text style={styles.unitText}>gl</Text>
+            <Text style={styles.metricLabel} numberOfLines={1}>
+              Hydration
+            </Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
+              {metrics.waterDrank}/{metrics.waterGoal} <Text style={styles.unitText}>glasses</Text>
             </Text>
           </View>
-          <TouchableOpacity style={styles.plusButton} onPress={logWater} activeOpacity={0.7}>
-            <Plus color={COLORS.secondary} size={14} />
-          </TouchableOpacity>
         </View>
 
         {/* Eye Rest */}
         <View style={styles.metricItem}>
-          <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-            <Eye color={COLORS.primary} size={18} />
+          <View style={styles.metricItemHeader}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+              <Eye color={COLORS.primary} size={16} />
+            </View>
+            <TouchableOpacity style={styles.plusButton} onPress={logEyeRest} activeOpacity={0.7}>
+              <Plus color={COLORS.primary} size={14} />
+            </TouchableOpacity>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel}>Eye Rest</Text>
-            <Text style={styles.metricValue}>
+            <Text style={styles.metricLabel} numberOfLines={1}>
+              Eye Rest
+            </Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
               {metrics.eyeRests}/{metrics.eyeRestGoal} <Text style={styles.unitText}>breaks</Text>
             </Text>
           </View>
-          <TouchableOpacity style={styles.plusButton} onPress={logEyeRest} activeOpacity={0.7}>
-            <Plus color={COLORS.primary} size={14} />
-          </TouchableOpacity>
         </View>
 
         {/* Stretch */}
         <View style={styles.metricItem}>
-          <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-            <Activity color={COLORS.success} size={18} />
+          <View style={styles.metricItemHeader}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <Activity color={COLORS.success} size={16} />
+            </View>
+            <TouchableOpacity style={styles.plusButton} onPress={logStretch} activeOpacity={0.7}>
+              <Plus color={COLORS.success} size={14} />
+            </TouchableOpacity>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel}>Stretch</Text>
-            <Text style={styles.metricValue}>
-              {metrics.stretchesDone}/{metrics.stretchGoal} <Text style={styles.unitText}>sess</Text>
+            <Text style={styles.metricLabel} numberOfLines={1}>
+              Posture Stretch
+            </Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
+              {metrics.stretchesDone}/{metrics.stretchGoal} <Text style={styles.unitText}>sessions</Text>
             </Text>
           </View>
-          <TouchableOpacity style={styles.plusButton} onPress={logStretch} activeOpacity={0.7}>
-            <Plus color={COLORS.success} size={14} />
-          </TouchableOpacity>
         </View>
 
-        {/* Focus */}
+        {/* Focus Time */}
         <View style={styles.metricItem}>
-          <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-            <Clock color={COLORS.warning} size={18} />
+          <View style={styles.metricItemHeader}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <Clock color={COLORS.warning} size={16} />
+            </View>
+            <View style={styles.pointsBadge}>
+              <Zap color={COLORS.warning} size={10} fill={COLORS.warning} />
+              <Text style={styles.pointsText}>+{user.points}</Text>
+            </View>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel}>Focus Time</Text>
-            <Text style={styles.metricValue}>
+            <Text style={styles.metricLabel} numberOfLines={1}>
+              Focus Time
+            </Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
               {metrics.focusMinutes} <Text style={styles.unitText}>mins</Text>
             </Text>
-          </View>
-          <View style={styles.pointsBadge}>
-            <Zap color={COLORS.warning} size={12} fill={COLORS.warning} />
-            <Text style={styles.pointsText}>+{user.points}</Text>
           </View>
         </View>
       </View>
@@ -127,26 +145,26 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
   scoreSublabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.secondary,
     fontWeight: '600',
     marginTop: 2,
   },
   scorePill: {
     backgroundColor: COLORS.cardBgLight,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
   scoreNumber: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: COLORS.primary,
   },
@@ -172,53 +190,37 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: COLORS.cardBgLight,
     borderRadius: 14,
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
+  metricItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   iconBox: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  metricTextGroup: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-  },
-  metricValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  unitText: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-    fontWeight: '400',
   },
   plusButton: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pointsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 10,
   },
   pointsText: {
@@ -226,5 +228,24 @@ const styles = StyleSheet.create({
     color: COLORS.warning,
     fontWeight: '700',
     marginLeft: 2,
+  },
+  metricTextGroup: {
+    flexDirection: 'column',
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  unitText: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontWeight: '400',
   },
 });

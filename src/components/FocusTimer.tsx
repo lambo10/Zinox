@@ -77,7 +77,7 @@ export const FocusTimer: React.FC = () => {
           onPress={() => switchMode('focus')}
         >
           <Sparkles color={mode === 'focus' ? COLORS.primary : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'focus' && styles.activeModeText]}>
+          <Text style={[styles.modeText, mode === 'focus' && styles.activeModeText]} numberOfLines={1}>
             Focus (25m)
           </Text>
         </TouchableOpacity>
@@ -87,7 +87,7 @@ export const FocusTimer: React.FC = () => {
           onPress={() => switchMode('break')}
         >
           <Coffee color={mode === 'break' ? COLORS.secondary : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'break' && styles.activeModeText]}>
+          <Text style={[styles.modeText, mode === 'break' && styles.activeModeText]} numberOfLines={1}>
             Break (5m)
           </Text>
         </TouchableOpacity>
@@ -97,7 +97,7 @@ export const FocusTimer: React.FC = () => {
           onPress={() => switchMode('upskill')}
         >
           <BookOpen color={mode === 'upskill' ? COLORS.success : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'upskill' && styles.activeModeText]}>
+          <Text style={[styles.modeText, mode === 'upskill' && styles.activeModeText]} numberOfLines={1}>
             Upskill (15m)
           </Text>
         </TouchableOpacity>
@@ -166,12 +166,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     width: '100%',
     justifyContent: 'space-between',
+    gap: 4,
   },
   modeTab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     borderRadius: 10,
     gap: 4,
   },
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   modeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: '600',
   },
