@@ -1,11 +1,20 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, SPRING_CONFIG, useThemeColors } from '../theme/colors';
 import { Droplet, Eye, Activity, Clock, Plus, Zap } from 'lucide-react-native';
+import { AnimatedPressable } from './AnimatedPressable';
 
 export const BalanceScoreCard: React.FC = () => {
   const { metrics, logWater, logEyeRest, logStretch, user } = useZinoxStore();
+  const colors = useThemeColors();
 
   // Calculate Overall Balance Score %
   const waterPct = Math.min(metrics.waterDrank / metrics.waterGoal, 1);
@@ -13,6 +22,26 @@ export const BalanceScoreCard: React.FC = () => {
   const stretchPct = Math.min(metrics.stretchesDone / metrics.stretchGoal, 1);
 
   const balanceScore = Math.round(((waterPct + eyePct + stretchPct) / 3) * 100);
+
+  // Animations
+  const scoreProgress = useSharedValue(0);
+  const badgeScale = useSharedValue(1);
+
+  useEffect(() => {
+    scoreProgress.value = withTiming(balanceScore, { duration: 600 });
+    badgeScale.value = withSequence(
+      withSpring(1.2, SPRING_CONFIG),
+      withSpring(1.0, SPRING_CONFIG)
+    );
+  }, [balanceScore]);
+
+  const animatedMeterStyle = useAnimatedStyle(() => ({
+    width: `${scoreProgress.value}%`,
+  }));
+
+  const animatedBadgeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: badgeScale.value }],
+  }));
 
   const getScoreLabel = (score: number) => {
     if (score >= 85) return 'Optimal Balance ✨';
@@ -22,23 +51,23 @@ export const BalanceScoreCard: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, SHADOWS.card]}>
+    <View style={[styles.container, SHADOWS.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
       {/* Header Row */}
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
             Work-Life Balance Score
           </Text>
-          <Text style={styles.scoreSublabel}>{getScoreLabel(balanceScore)}</Text>
+          <Text style={[styles.scoreSublabel, { color: colors.textSecondary }]}>{getScoreLabel(balanceScore)}</Text>
         </View>
-        <View style={styles.scorePill}>
-          <Text style={styles.scoreNumber}>{balanceScore}%</Text>
-        </View>
+        <Animated.View style={[styles.scorePill, animatedBadgeStyle, { backgroundColor: colors.accentGlow }]}>
+          <Text style={[styles.scoreNumber, { color: colors.primary }]}>{balanceScore}%</Text>
+        </Animated.View>
       </View>
 
       {/* Main Meter Bar */}
-      <View style={styles.meterContainer}>
-        <View style={[styles.meterFill, { width: `${balanceScore}%` }]} />
+      <View style={[styles.meterContainer, { backgroundColor: colors.cardBgLight }]}>
+        <Animated.View style={[styles.meterFill, animatedMeterStyle, { backgroundColor: colors.primary }]} />
       </View>
 
       {/* Metrics Grid */}
@@ -49,9 +78,13 @@ export const BalanceScoreCard: React.FC = () => {
             <View style={[styles.iconBox, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
               <Droplet color={COLORS.secondary} size={16} />
             </View>
-            <TouchableOpacity style={styles.plusButton} onPress={logWater} activeOpacity={0.7}>
+            <AnimatedPressable
+              style={styles.plusButton}
+              onPress={logWater}
+              activeScale={0.82}
+            >
               <Plus color={COLORS.secondary} size={14} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
             <Text style={styles.metricLabel} numberOfLines={1}>
@@ -69,9 +102,13 @@ export const BalanceScoreCard: React.FC = () => {
             <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
               <Eye color={COLORS.primary} size={16} />
             </View>
-            <TouchableOpacity style={styles.plusButton} onPress={logEyeRest} activeOpacity={0.7}>
+            <AnimatedPressable
+              style={styles.plusButton}
+              onPress={logEyeRest}
+              activeScale={0.82}
+            >
               <Plus color={COLORS.primary} size={14} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
             <Text style={styles.metricLabel} numberOfLines={1}>
@@ -89,9 +126,13 @@ export const BalanceScoreCard: React.FC = () => {
             <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
               <Activity color={COLORS.success} size={16} />
             </View>
-            <TouchableOpacity style={styles.plusButton} onPress={logStretch} activeOpacity={0.7}>
+            <AnimatedPressable
+              style={styles.plusButton}
+              onPress={logStretch}
+              activeScale={0.82}
+            >
               <Plus color={COLORS.success} size={14} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
             <Text style={styles.metricLabel} numberOfLines={1}>
@@ -249,3 +290,4 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 });
+

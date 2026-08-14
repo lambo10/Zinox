@@ -1,24 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { COLORS, SHADOWS } from '../theme/colors';
 import { Mail, Lock, User, Briefcase, Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { signInUser, signUpUser } from '../services/apiService';
+import Svg, { Path } from 'react-native-svg';
+import { signInUser, signUpUser, signInWithGoogleFirebase } from '../services/apiService';
 import { triggerLocalNotification } from '../services/notificationService';
 import { useZinoxStore } from '../store/useZinoxStore';
+import { Toast, ToastType } from '../components/Toast';
+import { SegmentedControl, SegmentOption } from '../components/SegmentedControl';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 
 type AuthMode = 'signin' | 'signup';
+
+const GoogleIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path
+      fill="#4285F4"
+      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+    />
+    <Path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.1-6.68-4.93H1.28v3.15C3.25 21.3 7.31 24 12 24z"
+    />
+    <Path
+      fill="#FBBC05"
+      d="M5.32 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.28C.46 8.2 0 10.04 0 12s.46 3.8 1.28 5.42l4.04-3.15z"
+    />
+    <Path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.28 6.58l4.04 3.15c.94-2.83 3.57-4.98 6.68-4.98z"
+    />
+  </Svg>
+);
 
 export const AuthScreen: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -28,15 +58,68 @@ export const AuthScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Animations
+  const logoPulse = useSharedValue(1);
+
+  useEffect(() => {
+    logoPulse.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 1000 }),
+        withTiming(1.0, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const logoAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: logoPulse.value }],
+  }));
+
+  // Toast Notification State
+  const [toastConfig, setToastConfig] = useState<{
+    visible: boolean;
+    type: ToastType;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'error',
+    title: '',
+    message: '',
+  });
+
+  const showToast = (title: string, message: string, type: ToastType = 'error') => {
+    setToastConfig({
+      visible: true,
+      type,
+      title,
+      message,
+    });
+  };
+
+  const handleModeSwitch = (newMode: AuthMode) => {
+    setMode(newMode);
+    setErrorMessage(null);
+  };
 
   const handleSubmit = async () => {
+    setErrorMessage(null);
+
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Required Fields', 'Please enter your email and password.');
+      const msg = 'Please enter your email address and password.';
+      setErrorMessage(msg);
+      showToast('Required Fields', msg, 'warning');
       return;
     }
 
     if (mode === 'signup' && (!name.trim() || !title.trim())) {
-      Alert.alert('Required Fields', 'Please enter your full name and job title.');
+      const msg = 'Please enter your full name and job title.';
+      setErrorMessage(msg);
+      showToast('Required Fields', msg, 'warning');
       return;
     }
 
@@ -46,14 +129,18 @@ export const AuthScreen: React.FC = () => {
       const res = await signInUser(email.trim(), password.trim());
       setLoading(false);
 
-      if (res.success && res.data?.session) {
-        useZinoxStore.getState().setSession(res.data.session);
+      if (res.success && (res.session || res.data?.session)) {
+        const activeSession = res.session || res.data?.session;
+        setErrorMessage(null);
+        useZinoxStore.getState().setSession(activeSession);
         triggerLocalNotification(
           'Welcome back to Zinox! ⚡',
-          'Successfully authenticated with Supabase.'
+          'Successfully authenticated.'
         );
       } else {
-        Alert.alert('Authentication Failed', res.error || 'Invalid credentials or email unconfirmed');
+        const errStr = res.error || 'Invalid credentials';
+        setErrorMessage(errStr);
+        showToast('Sign In Failed', errStr, 'error');
       }
     } else {
       const res = await signUpUser(
@@ -64,23 +151,61 @@ export const AuthScreen: React.FC = () => {
       );
       setLoading(false);
 
-      if (res.success) {
-        if (res.session) {
-          useZinoxStore.getState().setSession(res.session);
-          useZinoxStore.getState().updateUserProfile(
-            name.trim() || 'Lambert Nnadi',
-            title.trim() || 'Senior Software Developer'
-          );
-          triggerLocalNotification(
-            'Welcome to Zinox! 🚀',
-            `Account created for ${name.trim() || 'Lambert Nnadi'}.`
-          );
-        }
+      if (res.success && (res.session || res.data?.session)) {
+        const activeSession = res.session || res.data?.session;
+        setErrorMessage(null);
+        useZinoxStore.getState().setSession(activeSession);
+        useZinoxStore.getState().updateUserProfile(
+          name.trim() || 'Zinox User',
+          title.trim() || 'Software Developer'
+        );
+        triggerLocalNotification(
+          'Welcome to Zinox! 🚀',
+          `Account created for ${name.trim() || 'Zinox User'}.`
+        );
       } else {
-        Alert.alert('Account Creation Failed', res.error || 'Could not create account');
+        const errStr = res.error || 'Could not create account';
+        setErrorMessage(errStr);
+        showToast('Account Creation Failed', errStr, 'error');
       }
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
+    setGoogleLoading(true);
+
+    try {
+      const res = await signInWithGoogleFirebase();
+      setGoogleLoading(false);
+
+      if (res.success && res.session) {
+        const activeSession = res.session;
+        setErrorMessage(null);
+        useZinoxStore.getState().setSession(activeSession);
+
+        const userName = activeSession.user?.user_metadata?.full_name || 'Google User';
+        triggerLocalNotification(
+          'Signed in with Google! 🌐',
+          `Welcome back to Zinox, ${userName}.`
+        );
+      } else {
+        const errStr = res.error || 'Google Sign-In failed';
+        setErrorMessage(errStr);
+        showToast('Google Auth Failed', errStr, 'error');
+      }
+    } catch (err: any) {
+      setGoogleLoading(false);
+      const errStr = err?.message || 'Google authentication error';
+      setErrorMessage(errStr);
+      showToast('Google Auth Error', errStr, 'error');
+    }
+  };
+
+  const modeOptions: SegmentOption<AuthMode>[] = [
+    { key: 'signin', label: 'Sign In' },
+    { key: 'signup', label: 'Create Account' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -94,9 +219,9 @@ export const AuthScreen: React.FC = () => {
         >
           {/* Brand Header */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoBadge}>
+            <Animated.View style={[styles.logoBadge, logoAnimStyle]}>
               <Sparkles color="#FFFFFF" size={28} />
-            </View>
+            </Animated.View>
             <Text style={styles.appName}>ZINOX</Text>
             <Text style={styles.tagline}>
               Work-Life Balance & Upskilling Super-App
@@ -105,28 +230,13 @@ export const AuthScreen: React.FC = () => {
 
           {/* Form Card */}
           <View style={[styles.authCard, SHADOWS.card]}>
-            {/* Mode Switcher Tabs */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tab, mode === 'signin' && styles.activeTab]}
-                onPress={() => setMode('signin')}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tabText, mode === 'signin' && styles.activeTabText]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.tab, mode === 'signup' && styles.activeTab]}
-                onPress={() => setMode('signup')}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tabText, mode === 'signup' && styles.activeTabText]}>
-                  Create Account
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {/* iOS Segmented Control Mode Switcher */}
+            <SegmentedControl
+              options={modeOptions}
+              selectedKey={mode}
+              onSelect={handleModeSwitch}
+              containerStyle={{ marginBottom: 20 }}
+            />
 
             {/* Inputs */}
             {mode === 'signup' && (
@@ -141,7 +251,10 @@ export const AuthScreen: React.FC = () => {
                       placeholder="e.g. Alex Vance"
                       placeholderTextColor={COLORS.textMuted}
                       value={name}
-                      onChangeText={setName}
+                      onChangeText={(val) => {
+                        setName(val);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
                       autoCapitalize="words"
                     />
                   </View>
@@ -157,7 +270,10 @@ export const AuthScreen: React.FC = () => {
                       placeholder="e.g. Senior Software Architect"
                       placeholderTextColor={COLORS.textMuted}
                       value={title}
-                      onChangeText={setTitle}
+                      onChangeText={(val) => {
+                        setTitle(val);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
                       autoCapitalize="words"
                     />
                   </View>
@@ -175,7 +291,10 @@ export const AuthScreen: React.FC = () => {
                   placeholder="alex.vance@example.com"
                   placeholderTextColor={COLORS.textMuted}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -192,28 +311,39 @@ export const AuthScreen: React.FC = () => {
                   placeholder="••••••••••••"
                   placeholderTextColor={COLORS.textMuted}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity
+                <AnimatedPressable
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeBtn}
+                  activeScale={0.88}
                 >
                   {showPassword ? (
                     <EyeOff color={COLORS.textSecondary} size={18} />
                   ) : (
                     <Eye color={COLORS.textSecondary} size={18} />
                   )}
-                </TouchableOpacity>
+                </AnimatedPressable>
               </View>
             </View>
 
+            {/* Error Message Box */}
+            {errorMessage ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorCardText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
             {/* Submit Button */}
-            <TouchableOpacity
+            <AnimatedPressable
               style={[styles.submitButton, loading && { opacity: 0.7 }]}
               onPress={handleSubmit}
-              disabled={loading}
-              activeOpacity={0.85}
+              disabled={loading || googleLoading}
+              activeScale={0.96}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -225,7 +355,33 @@ export const AuthScreen: React.FC = () => {
                   <ArrowRight color="#FFFFFF" size={18} />
                 </>
               )}
-            </TouchableOpacity>
+            </AnimatedPressable>
+
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Google Sign In Button */}
+            <AnimatedPressable
+              style={[styles.googleButton, (googleLoading || loading) && { opacity: 0.7 }]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
+              activeScale={0.96}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={COLORS.textPrimary} />
+              ) : (
+                <>
+                  <GoogleIcon size={20} />
+                  <Text style={styles.googleButtonText}>
+                    {mode === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}
+                  </Text>
+                </>
+              )}
+            </AnimatedPressable>
           </View>
 
           {/* Footer Security Badge */}
@@ -237,6 +393,15 @@ export const AuthScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Floating Animated Toast */}
+      <Toast
+        visible={toastConfig.visible}
+        type={toastConfig.type}
+        title={toastConfig.title}
+        message={toastConfig.message}
+        onDismiss={() => setToastConfig((prev) => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };
@@ -292,33 +457,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.cardBgLight,
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 20,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  activeTab: {
-    backgroundColor: COLORS.cardBg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  tabText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: COLORS.textPrimary,
-    fontWeight: '800',
-  },
   inputGroup: {
     marginBottom: 14,
   },
@@ -347,6 +485,22 @@ const styles = StyleSheet.create({
   eyeBtn: {
     padding: 4,
   },
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: '#EF4444',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  errorCardText: {
+    color: '#F87171',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,6 +521,39 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.cardBorder,
+  },
+  dividerText: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    letterSpacing: 1,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.cardBgLight,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    gap: 12,
+  },
+  googleButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
   securityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,3 +566,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

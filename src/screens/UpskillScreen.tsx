@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   SafeAreaView,
   Modal,
   Alert,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore, UpskillCourse, Lesson } from '../store/useZinoxStore';
 import { UpskillCard } from '../components/UpskillCard';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, SPRING_CONFIG } from '../theme/colors';
 import {
   BookOpen,
   CheckCircle2,
@@ -22,6 +28,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 
 type CategoryFilter = 'All' | 'AI & Code' | 'Leadership' | 'Architecture' | 'Wellness';
 
@@ -36,6 +43,11 @@ export const UpskillScreen: React.FC = () => {
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizScore, setQuizScore] = useState(0);
+
+  // Reanimated values
+  const quizCardX = useSharedValue(0);
+  const quizCardOpacity = useSharedValue(1);
+  const trophyScale = useSharedValue(1);
 
   const categories: CategoryFilter[] = ['All', 'AI & Code', 'Leadership', 'Architecture', 'Wellness'];
 
@@ -69,6 +81,8 @@ export const UpskillScreen: React.FC = () => {
     setCurrentQuizIndex(0);
     setSelectedOption(null);
     setQuizScore(0);
+    quizCardX.value = 0;
+    quizCardOpacity.value = 1;
   };
 
   const handleSelectOption = (index: number) => {
@@ -86,13 +100,29 @@ export const UpskillScreen: React.FC = () => {
 
   const handleNextQuestion = () => {
     if (!activeCourse) return;
+
+    // Animate question transition out and in
+    quizCardX.value = withTiming(-30, { duration: 150 }, () => {
+      quizCardX.value = 30;
+      quizCardX.value = withSpring(0, SPRING_CONFIG);
+    });
+
     if (currentQuizIndex + 1 < activeCourse.quiz.length) {
       setCurrentQuizIndex((prev) => prev + 1);
       setSelectedOption(null);
     } else {
       // Quiz Finished
-      const finalScorePct = Math.round(((quizScore + (selectedOption === activeCourse.quiz[currentQuizIndex].correctIndex ? 1 : 0)) / activeCourse.quiz.length) * 100);
+      const finalScorePct = Math.round(
+        ((quizScore + (selectedOption === activeCourse.quiz[currentQuizIndex].correctIndex ? 1 : 0)) /
+          activeCourse.quiz.length) *
+          100
+      );
       completeCourseQuiz(activeCourse.id, finalScorePct);
+
+      trophyScale.value = withSequence(
+        withSpring(1.4, SPRING_CONFIG),
+        withSpring(1.0, SPRING_CONFIG)
+      );
 
       triggerLocalNotification(
         'Course Mastered! 🏆',
@@ -115,6 +145,15 @@ export const UpskillScreen: React.FC = () => {
     }
   };
 
+  const quizAnimStyle = useAnimatedStyle(() => ({
+    opacity: quizCardOpacity.value,
+    transform: [{ translateX: quizCardX.value }],
+  }));
+
+  const trophyAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: trophyScale.value }],
+  }));
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Title */}
@@ -129,24 +168,26 @@ export const UpskillScreen: React.FC = () => {
       </View>
 
       {/* Category Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScroll}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.categoryPill, selectedCategory === cat && styles.activePill]}
-            onPress={() => setSelectedCategory(cat)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.pillText, selectedCategory === cat && styles.activePillText]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.categoryWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScroll}
+        >
+          {categories.map((cat) => (
+            <AnimatedPressable
+              key={cat}
+              style={[styles.categoryPill, selectedCategory === cat && styles.activePill]}
+              onPress={() => setSelectedCategory(cat)}
+              activeScale={0.92}
+            >
+              <Text style={[styles.pillText, selectedCategory === cat && styles.activePillText]}>
+                {cat}
+              </Text>
+            </AnimatedPressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Course List */}
       <ScrollView contentContainerStyle={styles.courseList}>
@@ -167,9 +208,13 @@ export const UpskillScreen: React.FC = () => {
             <View style={{ flex: 1 }}>
               {/* Modal Top Header */}
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setActiveCourse(null)} style={styles.closeBtn}>
+                <AnimatedPressable
+                  onPress={() => setActiveCourse(null)}
+                  style={styles.closeBtn}
+                  activeScale={0.88}
+                >
                   <X color={COLORS.textPrimary} size={22} />
-                </TouchableOpacity>
+                </AnimatedPressable>
                 <Text style={styles.modalCategory}>{activeCourse.category}</Text>
                 <View style={styles.placeholderBox} />
               </View>
@@ -182,13 +227,14 @@ export const UpskillScreen: React.FC = () => {
                   {/* Lessons List */}
                   <Text style={styles.sectionHeading}>Module Lessons</Text>
                   {activeCourse.lessons.map((lesson, idx) => (
-                    <TouchableOpacity
+                    <AnimatedPressable
                       key={lesson.id}
                       style={[
                         styles.lessonCard,
                         activeLesson?.id === lesson.id && styles.activeLessonCard,
                       ]}
                       onPress={() => setActiveLesson(lesson)}
+                      activeScale={0.97}
                     >
                       <View style={styles.lessonLeft}>
                         {lesson.completed ? (
@@ -201,7 +247,7 @@ export const UpskillScreen: React.FC = () => {
                         </Text>
                       </View>
                       <Text style={styles.lessonDuration}>{lesson.duration}</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   ))}
 
                   {/* Active Lesson Reader Content */}
@@ -210,13 +256,14 @@ export const UpskillScreen: React.FC = () => {
                       <Text style={styles.readerHeading}>{activeLesson.title}</Text>
                       <Text style={styles.readerContent}>{activeLesson.content}</Text>
 
-                      <TouchableOpacity
+                      <AnimatedPressable
                         style={[
                           styles.completeLessonBtn,
                           activeLesson.completed && { backgroundColor: COLORS.cardBgLight },
                         ]}
                         onPress={() => handleCompleteLesson(activeLesson)}
                         disabled={activeLesson.completed}
+                        activeScale={0.96}
                       >
                         <CheckCircle2
                           color={activeLesson.completed ? COLORS.success : '#FFFFFF'}
@@ -230,77 +277,86 @@ export const UpskillScreen: React.FC = () => {
                         >
                           {activeLesson.completed ? 'Lesson Completed (+50 XP)' : 'Mark Lesson Complete'}
                         </Text>
-                      </TouchableOpacity>
+                      </AnimatedPressable>
                     </View>
                   )}
 
                   {/* Start Quiz Button */}
                   {activeCourse.quiz && activeCourse.quiz.length > 0 && (
-                    <TouchableOpacity
+                    <AnimatedPressable
                       style={styles.quizStartBtn}
                       onPress={handleStartQuiz}
-                      activeOpacity={0.85}
+                      activeScale={0.96}
                     >
                       <HelpCircle color="#FFFFFF" size={20} />
                       <Text style={styles.quizStartText}>Take Knowledge Quiz & Earn Badge</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   )}
                 </ScrollView>
               ) : (
-                /* Interactive Quiz View */
+                /* Interactive Quiz View with Reanimated Card Slide */
                 <View style={styles.quizContainer}>
                   <View style={styles.quizHeader}>
-                    <Award color={COLORS.warning} size={24} />
+                    <Animated.View style={trophyAnimStyle}>
+                      <Award color={COLORS.warning} size={24} />
+                    </Animated.View>
                     <Text style={styles.quizProgressText}>
                       Question {currentQuizIndex + 1} of {activeCourse.quiz.length}
                     </Text>
                   </View>
 
-                  <Text style={styles.questionText}>
-                    {activeCourse.quiz[currentQuizIndex].question}
-                  </Text>
+                  <Animated.View style={quizAnimStyle}>
+                    <Text style={styles.questionText}>
+                      {activeCourse.quiz[currentQuizIndex].question}
+                    </Text>
 
-                  {/* Options */}
-                  <View style={styles.optionsList}>
-                    {activeCourse.quiz[currentQuizIndex].options.map((opt, i) => {
-                      const isSelected = selectedOption === i;
-                      const isCorrect = i === activeCourse.quiz[currentQuizIndex].correctIndex;
-                      let optionStyle: any = styles.quizOption;
+                    {/* Options */}
+                    <View style={styles.optionsList}>
+                      {activeCourse.quiz[currentQuizIndex].options.map((opt, i) => {
+                        const isSelected = selectedOption === i;
+                        const isCorrect = i === activeCourse.quiz[currentQuizIndex].correctIndex;
+                        let optionStyle: any = styles.quizOption;
 
-                      if (selectedOption !== null) {
-                        if (isCorrect) optionStyle = [styles.quizOption, styles.correctOption];
-                        else if (isSelected) optionStyle = [styles.quizOption, styles.wrongOption];
-                      }
+                        if (selectedOption !== null) {
+                          if (isCorrect) optionStyle = [styles.quizOption, styles.correctOption];
+                          else if (isSelected) optionStyle = [styles.quizOption, styles.wrongOption];
+                        }
 
-                      return (
-                        <TouchableOpacity
-                          key={i}
-                          style={optionStyle}
-                          onPress={() => handleSelectOption(i)}
-                          disabled={selectedOption !== null}
-                        >
-                          <Text style={styles.optionText}>{opt}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* Explanation feedback */}
-                  {selectedOption !== null && (
-                    <View style={styles.explanationBox}>
-                      <Text style={styles.explanationText}>
-                        💡 {activeCourse.quiz[currentQuizIndex].explanation}
-                      </Text>
-
-                      <TouchableOpacity style={styles.nextQuizBtn} onPress={handleNextQuestion}>
-                        <Text style={styles.nextQuizBtnText}>
-                          {currentQuizIndex + 1 < activeCourse.quiz.length
-                            ? 'Next Question'
-                            : 'Finish Quiz'}
-                        </Text>
-                      </TouchableOpacity>
+                        return (
+                          <AnimatedPressable
+                            key={i}
+                            style={optionStyle}
+                            onPress={() => handleSelectOption(i)}
+                            disabled={selectedOption !== null}
+                            activeScale={0.97}
+                          >
+                            <Text style={styles.optionText}>{opt}</Text>
+                          </AnimatedPressable>
+                        );
+                      })}
                     </View>
-                  )}
+
+                    {/* Explanation feedback */}
+                    {selectedOption !== null && (
+                      <View style={styles.explanationBox}>
+                        <Text style={styles.explanationText}>
+                          💡 {activeCourse.quiz[currentQuizIndex].explanation}
+                        </Text>
+
+                        <AnimatedPressable
+                          style={styles.nextQuizBtn}
+                          onPress={handleNextQuestion}
+                          activeScale={0.96}
+                        >
+                          <Text style={styles.nextQuizBtnText}>
+                            {currentQuizIndex + 1 < activeCourse.quiz.length
+                              ? 'Next Question'
+                              : 'Finish Quiz'}
+                          </Text>
+                        </AnimatedPressable>
+                      </View>
+                    )}
+                  </Animated.View>
                 </View>
               )}
             </View>
@@ -338,34 +394,41 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 4,
   },
+  categoryWrapper: {
+    height: 52,
+    marginVertical: 4,
+  },
   categoryScroll: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    alignItems: 'center',
     gap: 10,
+    flexDirection: 'row',
   },
   categoryPill: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.cardBg,
+    backgroundColor: COLORS.cardBgLight,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activePill: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
   pillText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    color: COLORS.textPrimary,
     fontWeight: '600',
   },
   activePillText: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   courseList: {
-    paddingBottom: 30,
+    paddingBottom: 90,
   },
   modalContainer: {
     flex: 1,
@@ -557,7 +620,7 @@ const styles = StyleSheet.create({
   explanationText: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 16,
   },
   nextQuizBtn: {
@@ -572,3 +635,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+

@@ -1,13 +1,56 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
 import { FocusTimer } from '../components/FocusTimer';
 import { COLORS, SHADOWS } from '../theme/colors';
 import { Droplet, Eye, Activity, Clock, ShieldCheck, HeartPulse, RefreshCw } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 
 export const BalanceScreen: React.FC = () => {
   const { metrics, logWater, logEyeRest, logStretch, resetDailyMetrics } = useZinoxStore();
+
+  // Animations
+  const fadeHeader = useSharedValue(0);
+  const fadeSummary = useSharedValue(0);
+  const fadeTips = useSharedValue(0);
+  const resetSpin = useSharedValue(0);
+
+  useEffect(() => {
+    fadeHeader.value = withTiming(1, { duration: 400 });
+    fadeSummary.value = withDelay(150, withTiming(1, { duration: 400 }));
+    fadeTips.value = withDelay(300, withTiming(1, { duration: 400 }));
+  }, []);
+
+  const headerStyle = useAnimatedStyle(() => ({
+    opacity: fadeHeader.value,
+    transform: [{ translateY: (1 - fadeHeader.value) * 15 }],
+  }));
+
+  const summaryStyle = useAnimatedStyle(() => ({
+    opacity: fadeSummary.value,
+    transform: [{ translateY: (1 - fadeSummary.value) * 15 }],
+  }));
+
+  const tipsStyle = useAnimatedStyle(() => ({
+    opacity: fadeTips.value,
+    transform: [{ translateY: (1 - fadeTips.value) * 15 }],
+  }));
+
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${resetSpin.value}deg` }],
+  }));
+
+  const handleReset = () => {
+    resetSpin.value = withTiming(resetSpin.value + 360, { duration: 600 });
+    resetDailyMetrics();
+  };
 
   const handleQuickRestAlert = () => {
     logEyeRest();
@@ -19,16 +62,16 @@ export const BalanceScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, headerStyle]}>
         <Text style={styles.title}>Work-Life Balance Hub</Text>
         <Text style={styles.subtitle}>
           Harmonize deep coding focus with physical ergonomics and eye care.
         </Text>
-      </View>
+      </Animated.View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Overall Wellness Summary Card */}
-        <View style={[styles.summaryCard, SHADOWS.card]}>
+        <Animated.View style={[styles.summaryCard, SHADOWS.card, summaryStyle]}>
           <View style={styles.summaryTop}>
             <View style={styles.iconCircle}>
               <HeartPulse color={COLORS.success} size={24} />
@@ -37,9 +80,11 @@ export const BalanceScreen: React.FC = () => {
               <Text style={styles.summaryHeading}>Daily Balance Health</Text>
               <Text style={styles.summarySub}>Optimal Ergonomic Rhythm</Text>
             </View>
-            <TouchableOpacity onPress={resetDailyMetrics} style={styles.resetBtn}>
-              <RefreshCw color={COLORS.textSecondary} size={16} />
-            </TouchableOpacity>
+            <AnimatedPressable onPress={handleReset} style={styles.resetBtn} activeScale={0.88}>
+              <Animated.View style={spinStyle}>
+                <RefreshCw color={COLORS.textSecondary} size={16} />
+              </Animated.View>
+            </AnimatedPressable>
           </View>
 
           <View style={styles.gridContainer}>
@@ -50,9 +95,9 @@ export const BalanceScreen: React.FC = () => {
                 {metrics.waterDrank}/{metrics.waterGoal}
               </Text>
               <Text style={styles.gridLbl}>Water Glasses</Text>
-              <TouchableOpacity style={styles.gridAddBtn} onPress={logWater}>
+              <AnimatedPressable style={styles.gridAddBtn} onPress={logWater} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Log</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             {/* Eye Rests */}
@@ -62,9 +107,9 @@ export const BalanceScreen: React.FC = () => {
                 {metrics.eyeRests}/{metrics.eyeRestGoal}
               </Text>
               <Text style={styles.gridLbl}>Eye Rests</Text>
-              <TouchableOpacity style={styles.gridAddBtn} onPress={handleQuickRestAlert}>
+              <AnimatedPressable style={styles.gridAddBtn} onPress={handleQuickRestAlert} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Rest</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             {/* Stretches */}
@@ -74,9 +119,9 @@ export const BalanceScreen: React.FC = () => {
                 {metrics.stretchesDone}/{metrics.stretchGoal}
               </Text>
               <Text style={styles.gridLbl}>Stretches</Text>
-              <TouchableOpacity style={styles.gridAddBtn} onPress={logStretch}>
+              <AnimatedPressable style={styles.gridAddBtn} onPress={logStretch} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Stretch</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             {/* Focus Mins */}
@@ -89,7 +134,7 @@ export const BalanceScreen: React.FC = () => {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Interactive Focus & Break Timer */}
         <View style={styles.sectionHeader}>
@@ -98,7 +143,7 @@ export const BalanceScreen: React.FC = () => {
         <FocusTimer />
 
         {/* Ergonomic Tips Card */}
-        <View style={styles.tipsCard}>
+        <Animated.View style={[styles.tipsCard, tipsStyle]}>
           <ShieldCheck color={COLORS.secondary} size={22} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.tipsTitle}>20-20-20 Rule for Developer Eye Care</Text>
@@ -106,7 +151,7 @@ export const BalanceScreen: React.FC = () => {
               Every 20 minutes of screen time, look at an object 20 feet away for 20 seconds. Reduces dry eyes and fatigue by 60%.
             </Text>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -135,7 +180,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   summaryCard: {
     backgroundColor: COLORS.cardBg,
@@ -264,3 +309,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+

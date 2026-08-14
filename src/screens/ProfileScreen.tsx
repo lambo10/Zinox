@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Image,
   SafeAreaView,
   Switch,
   Alert,
   Modal,
+  TouchableOpacity,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, SPRING_CONFIG, useThemeColors, ThemeMode } from '../theme/colors';
 import {
   User,
   Camera,
@@ -26,21 +34,63 @@ import {
   X,
   Sparkles,
   Zap,
+  Moon,
+  Sun,
 } from 'lucide-react-native';
 import { pickImageFromLibrary, takePhotoWithCamera } from '../services/imagePickerService';
 import { triggerLocalNotification } from '../services/notificationService';
+import { AnimatedPressable } from '../components/AnimatedPressable';
+import { SegmentedControl, SegmentOption } from '../components/SegmentedControl';
 
 export const ProfileScreen: React.FC = () => {
+  const colors = useThemeColors();
   const {
     user,
-    userEmail,
     updateAvatar,
     notificationsEnabled,
     toggleNotifications,
     resetDailyMetrics,
     signOut,
+    themeMode,
+    setThemeMode,
   } = useZinoxStore();
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+
+  const themeOptions: SegmentOption<ThemeMode>[] = [
+    { key: 'dark', label: 'Dark Mode 🌙' },
+    { key: 'light', label: 'Light Mode ☀️' },
+  ];
+
+  // Animations
+  const flamePulse = useSharedValue(1);
+  const sheetTranslateY = useSharedValue(300);
+
+  useEffect(() => {
+    flamePulse.value = withRepeat(
+      withSequence(
+        withTiming(1.2, { duration: 800 }),
+        withTiming(1.0, { duration: 800 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  useEffect(() => {
+    if (showPhotoModal) {
+      sheetTranslateY.value = withSpring(0, SPRING_CONFIG);
+    } else {
+      sheetTranslateY.value = 300;
+    }
+  }, [showPhotoModal]);
+
+  const flameAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: flamePulse.value }],
+  }));
+
+  const sheetAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sheetTranslateY.value }],
+  }));
 
   const handlePickLibrary = async () => {
     setShowPhotoModal(false);
@@ -74,157 +124,189 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Card */}
-        <View style={[styles.profileCard, SHADOWS.card]}>
+        <View style={[styles.profileCard, SHADOWS.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrapper}>
               {user.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                <Image source={{ uri: user.avatar }} style={[styles.avatarImage, { borderColor: colors.primary }]} />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <User color={COLORS.primary} size={40} />
+                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.cardBgLight, borderColor: colors.primary }]}>
+                  <User color={colors.primary} size={40} />
                 </View>
               )}
-              <TouchableOpacity
-                style={styles.cameraBadge}
+              <AnimatedPressable
+                style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.cardBg }]}
                 onPress={() => setShowPhotoModal(true)}
-                activeOpacity={0.8}
+                activeScale={0.82}
               >
                 <Camera color="#FFFFFF" size={16} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userTitle}>{user.title}</Text>
+            <Text style={[styles.userName, { color: colors.textPrimary }]}>{user.name}</Text>
+            <Text style={[styles.userTitle, { color: colors.textSecondary }]}>{user.title}</Text>
 
             <View style={styles.levelTag}>
-              <Sparkles color={COLORS.warning} size={14} />
+              <Sparkles color={colors.warning} size={14} />
               <Text style={styles.levelTagText}>{user.level} (Level 5)</Text>
             </View>
           </View>
 
           {/* Stats Bar */}
-          <View style={styles.statsBar}>
+          <View style={[styles.statsBar, { backgroundColor: colors.cardBgLight }]}>
             <View style={styles.statItem}>
-              <Flame color={COLORS.danger} size={20} fill={COLORS.danger} />
-              <Text style={styles.statVal}>{user.streak} Days</Text>
-              <Text style={styles.statLbl}>Balance Streak</Text>
+              <Animated.View style={flameAnimStyle}>
+                <Flame color={colors.danger} size={20} fill={colors.danger} />
+              </Animated.View>
+              <Text style={[styles.statVal, { color: colors.textPrimary }]}>{user.streak} Days</Text>
+              <Text style={[styles.statLbl, { color: colors.textSecondary }]}>Balance Streak</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
             <View style={styles.statItem}>
-              <Zap color={COLORS.warning} size={20} fill={COLORS.warning} />
-              <Text style={styles.statVal}>{user.points} XP</Text>
-              <Text style={styles.statLbl}>Zinox Score</Text>
+              <Zap color={colors.warning} size={20} fill={colors.warning} />
+              <Text style={[styles.statVal, { color: colors.textPrimary }]}>{user.points} XP</Text>
+              <Text style={[styles.statLbl, { color: colors.textSecondary }]}>Zinox Score</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
             <View style={styles.statItem}>
-              <Award color={COLORS.primary} size={20} />
-              <Text style={styles.statVal}>4 Badges</Text>
-              <Text style={styles.statLbl}>Upskill Level</Text>
+              <Award color={colors.primary} size={20} />
+              <Text style={[styles.statVal, { color: colors.textPrimary }]}>4 Badges</Text>
+              <Text style={[styles.statLbl, { color: colors.textSecondary }]}>Upskill Level</Text>
             </View>
+          </View>
+        </View>
+
+        {/* App Appearance & Theme Settings */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>App Appearance & Theme</Text>
+        </View>
+        <View style={[styles.settingCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
+          <View style={styles.settingRow}>
+            <View style={[styles.settingIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+              {themeMode === 'dark' ? (
+                <Moon color={colors.primary} size={20} />
+              ) : (
+                <Sun color={colors.warning} size={20} />
+              )}
+            </View>
+            <View style={styles.settingTextGroup}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Interface Color Theme</Text>
+              <Text style={[styles.settingSub, { color: colors.textSecondary }]}>
+                {themeMode === 'dark' ? 'Sleek OLED Dark Mode' : 'Clean Modern Light Mode'}
+              </Text>
+            </View>
+          </View>
+          <View style={{ marginTop: 14 }}>
+            <SegmentedControl
+              options={themeOptions}
+              selectedKey={themeMode}
+              onSelect={(newMode) => setThemeMode(newMode)}
+            />
           </View>
         </View>
 
         {/* Native Feature Settings */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Native Feature Integrations</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Native Feature Integrations</Text>
         </View>
 
         {/* Expo Notifications Settings */}
-        <View style={styles.settingCard}>
+        <View style={[styles.settingCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
           <View style={styles.settingRow}>
             <View style={[styles.settingIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Bell color={COLORS.primary} size={20} />
+              <Bell color={colors.primary} size={20} />
             </View>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingTitle}>Expo Push Notifications</Text>
-              <Text style={styles.settingSub}>Work-Life Break & Upskill Reminders</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Expo Push Notifications</Text>
+              <Text style={[styles.settingSub, { color: colors.textSecondary }]}>Work-Life Break & Upskill Reminders</Text>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
-              trackColor={{ false: COLORS.cardBgLight, true: COLORS.primary }}
+              trackColor={{ false: colors.cardBgLight, true: colors.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
 
-          <TouchableOpacity
-            style={styles.actionBtnSecondary}
+          <AnimatedPressable
+            style={[styles.actionBtnSecondary, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}
             onPress={handleTestPushNotification}
-            activeOpacity={0.8}
+            activeScale={0.96}
           >
-            <Bell color={COLORS.primary} size={16} />
-            <Text style={styles.actionBtnSecondaryText}>Trigger Instant Native Notification</Text>
-          </TouchableOpacity>
+            <Bell color={colors.primary} size={16} />
+            <Text style={[styles.actionBtnSecondaryText, { color: colors.textPrimary }]}>Trigger Instant Native Notification</Text>
+          </AnimatedPressable>
         </View>
 
         {/* Expo ImagePicker Avatar Setting */}
-        <View style={styles.settingCard}>
+        <View style={[styles.settingCard, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
           <View style={styles.settingRow}>
             <View style={[styles.settingIcon, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-              <Camera color={COLORS.secondary} size={20} />
+              <Camera color={colors.secondary} size={20} />
             </View>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingTitle}>Expo Camera & ImagePicker</Text>
-              <Text style={styles.settingSub}>Custom Profile Picture Simulator</Text>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary }]}>Expo Camera & ImagePicker</Text>
+              <Text style={[styles.settingSub, { color: colors.textSecondary }]}>Custom Profile Picture Simulator</Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.actionBtnSecondary}
+          <AnimatedPressable
+            style={[styles.actionBtnSecondary, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}
             onPress={() => setShowPhotoModal(true)}
-            activeOpacity={0.8}
+            activeScale={0.96}
           >
-            <Camera color={COLORS.secondary} size={16} />
-            <Text style={styles.actionBtnSecondaryText}>Change Profile Avatar</Text>
-          </TouchableOpacity>
+            <Camera color={colors.secondary} size={16} />
+            <Text style={[styles.actionBtnSecondaryText, { color: colors.textPrimary }]}>Change Profile Avatar</Text>
+          </AnimatedPressable>
         </View>
 
         {/* Achievements Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Earned Upskilling Badges</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Earned Upskilling Badges</Text>
         </View>
         <View style={styles.badgesGrid}>
-          <View style={styles.badgeItem}>
-            <Shield color={COLORS.primary} size={24} />
-            <Text style={styles.badgeItemTitle}>System Architect</Text>
-            <Text style={styles.badgeItemSub}>RAG Mastery</Text>
-          </View>
+          <AnimatedPressable style={[styles.badgeItem, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]} activeScale={0.92}>
+            <Shield color={colors.primary} size={24} />
+            <Text style={[styles.badgeItemTitle, { color: colors.textPrimary }]}>System Architect</Text>
+            <Text style={[styles.badgeItemSub, { color: colors.textSecondary }]}>RAG Mastery</Text>
+          </AnimatedPressable>
 
-          <View style={styles.badgeItem}>
-            <Award color={COLORS.warning} size={24} />
-            <Text style={styles.badgeItemTitle}>Zen Leader</Text>
-            <Text style={styles.badgeItemSub}>Mindful Focus</Text>
-          </View>
+          <AnimatedPressable style={[styles.badgeItem, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]} activeScale={0.92}>
+            <Award color={colors.warning} size={24} />
+            <Text style={[styles.badgeItemTitle, { color: colors.textPrimary }]}>Zen Leader</Text>
+            <Text style={[styles.badgeItemSub, { color: colors.textSecondary }]}>Mindful Focus</Text>
+          </AnimatedPressable>
 
-          <View style={styles.badgeItem}>
-            <CheckCircle color={COLORS.success} size={24} />
-            <Text style={styles.badgeItemTitle}>14d Streak</Text>
-            <Text style={styles.badgeItemSub}>Hydration Hero</Text>
-          </View>
+          <AnimatedPressable style={[styles.badgeItem, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]} activeScale={0.92}>
+            <CheckCircle color={colors.success} size={24} />
+            <Text style={[styles.badgeItemTitle, { color: colors.textPrimary }]}>14d Streak</Text>
+            <Text style={[styles.badgeItemSub, { color: colors.textSecondary }]}>Hydration Hero</Text>
+          </AnimatedPressable>
         </View>
 
         {/* Reset Actions */}
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.dangerBtn}
           onPress={() => {
             resetDailyMetrics();
             Alert.alert('Metrics Reset', 'Daily work-life metrics have been reset to zero.');
           }}
+          activeScale={0.96}
         >
-          <Trash2 color={COLORS.danger} size={18} />
+          <Trash2 color={colors.danger} size={18} />
           <Text style={styles.dangerBtnText}>Reset Today's Balance Progress</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
 
         {/* Sign Out Button */}
-        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
-          <Text style={styles.signOutBtnText}>Sign Out of Zinox</Text>
-        </TouchableOpacity>
+        <AnimatedPressable style={[styles.signOutBtn, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]} onPress={signOut} activeScale={0.96}>
+          <Text style={[styles.signOutBtnText, { color: colors.textSecondary }]}>Sign Out of Zinox</Text>
+        </AnimatedPressable>
       </ScrollView>
 
-      {/* Photo Choice Modal */}
+      {/* Reanimated iOS Action Sheet Modal */}
       <Modal
         visible={showPhotoModal}
         transparent
@@ -236,24 +318,24 @@ export const ProfileScreen: React.FC = () => {
           activeOpacity={1}
           onPress={() => setShowPhotoModal(false)}
         >
-          <View style={styles.photoSheet}>
+          <Animated.View style={[styles.photoSheet, sheetAnimStyle, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Update Profile Photo</Text>
-              <TouchableOpacity onPress={() => setShowPhotoModal(false)}>
-                <X color={COLORS.textPrimary} size={20} />
-              </TouchableOpacity>
+              <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Update Profile Photo</Text>
+              <AnimatedPressable onPress={() => setShowPhotoModal(false)} activeScale={0.88}>
+                <X color={colors.textPrimary} size={20} />
+              </AnimatedPressable>
             </View>
 
-            <TouchableOpacity style={styles.sheetOption} onPress={handlePickLibrary}>
-              <ImageIcon color={COLORS.primary} size={22} />
-              <Text style={styles.sheetOptionText}>Choose from Photo Library</Text>
-            </TouchableOpacity>
+            <AnimatedPressable style={[styles.sheetOption, { backgroundColor: colors.cardBgLight }]} onPress={handlePickLibrary} activeScale={0.96}>
+              <ImageIcon color={colors.primary} size={22} />
+              <Text style={[styles.sheetOptionText, { color: colors.textPrimary }]}>Choose from Photo Library</Text>
+            </AnimatedPressable>
 
-            <TouchableOpacity style={styles.sheetOption} onPress={handleTakePhoto}>
-              <Camera color={COLORS.secondary} size={22} />
-              <Text style={styles.sheetOptionText}>Take New Photo with Camera</Text>
-            </TouchableOpacity>
-          </View>
+            <AnimatedPressable style={[styles.sheetOption, { backgroundColor: colors.cardBgLight }]} onPress={handleTakePhoto} activeScale={0.96}>
+              <Camera color={colors.secondary} size={22} />
+              <Text style={[styles.sheetOptionText, { color: colors.textPrimary }]}>Take New Photo with Camera</Text>
+            </AnimatedPressable>
+          </Animated.View>
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
@@ -268,7 +350,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 90,
   },
   profileCard: {
     backgroundColor: COLORS.cardBg,
@@ -534,3 +616,4 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
 });
+

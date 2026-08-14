@@ -1,8 +1,15 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { UpskillCourse } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
-import { BookOpen, CheckCircle, Clock, ChevronRight, Zap } from 'lucide-react-native';
+import { COLORS, SHADOWS, SPRING_CONFIG } from '../theme/colors';
+import { CheckCircle, Clock, ChevronRight } from 'lucide-react-native';
+import { AnimatedPressable } from './AnimatedPressable';
 
 interface UpskillCardProps {
   course: UpskillCourse;
@@ -27,11 +34,30 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
 
   const color = getCategoryColor(course.category);
 
+  // Animations
+  const progressValue = useSharedValue(0);
+  const iconScale = useSharedValue(1);
+
+  useEffect(() => {
+    progressValue.value = withTiming(course.progress, { duration: 500 });
+    if (course.completed) {
+      iconScale.value = withSpring(1.2, SPRING_CONFIG);
+    }
+  }, [course.progress, course.completed]);
+
+  const animatedProgressStyle = useAnimatedStyle(() => ({
+    width: `${progressValue.value}%`,
+  }));
+
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       style={[styles.container, SHADOWS.card]}
       onPress={() => onPress(course)}
-      activeOpacity={0.85}
+      activeScale={0.97}
     >
       <View style={styles.topRow}>
         <View style={[styles.categoryBadge, { backgroundColor: `${color}20` }]}>
@@ -53,10 +79,11 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
       <View style={styles.bottomRow}>
         <View style={styles.progressContainer}>
           <View style={styles.progressBarTrack}>
-            <View
+            <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: `${course.progress}%`, backgroundColor: color },
+                animatedProgressStyle,
+                { backgroundColor: color },
               ]}
             />
           </View>
@@ -65,13 +92,15 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
 
         <View style={styles.actionButton}>
           {course.completed ? (
-            <CheckCircle color={COLORS.success} size={20} />
+            <Animated.View style={animatedIconStyle}>
+              <CheckCircle color={COLORS.success} size={20} />
+            </Animated.View>
           ) : (
             <ChevronRight color={COLORS.textPrimary} size={20} />
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 };
 
@@ -155,3 +184,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+

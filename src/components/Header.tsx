@@ -1,9 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, useThemeColors } from '../theme/colors';
 import { Flame, Bell, Sparkles, User } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
+import { AnimatedPressable } from './AnimatedPressable';
 
 interface HeaderProps {
   onPressProfile?: () => void;
@@ -11,55 +19,94 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onPressProfile }) => {
   const { user } = useZinoxStore();
+  const colors = useThemeColors();
+
+  // Animation values
+  const pulseDotOpacity = useSharedValue(0.6);
+  const flameScale = useSharedValue(1);
+
+  useEffect(() => {
+    pulseDotOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1000 }),
+        withTiming(0.4, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+
+    flameScale.value = withRepeat(
+      withSequence(
+        withTiming(1.15, { duration: 900 }),
+        withTiming(1.0, { duration: 900 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulseDotOpacity.value,
+  }));
+
+  const flameStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: flameScale.value }],
+  }));
 
   const handleNotificationPress = () => {
     triggerLocalNotification(
-      'Daily Upskilling & Rest Reminder',
+      'Daily Upskilling & Rest Reminder ⚡',
       'You are on a 14-day streak! Keep up the work-life balance and complete today’s 10-min RAG module.'
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Profile Section */}
-      <TouchableOpacity style={styles.profileSection} onPress={onPressProfile} activeOpacity={0.8}>
+      <AnimatedPressable
+        style={styles.profileSection}
+        onPress={onPressProfile}
+        activeScale={0.97}
+      >
         <View style={styles.avatarWrapper}>
           {user.avatar ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            <Image source={{ uri: user.avatar }} style={[styles.avatarImage, { borderColor: colors.primary }]} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <User color={COLORS.primary} size={24} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.cardBgLight, borderColor: colors.primary }]}>
+              <User color={colors.primary} size={24} />
             </View>
           )}
-          <View style={styles.onlineBadge} />
+          <Animated.View style={[styles.onlineBadge, pulseStyle, { backgroundColor: colors.success, borderColor: colors.background }]} />
         </View>
 
         <View style={styles.userInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Sparkles color={COLORS.warning} size={14} style={{ marginLeft: 4 }} />
+            <Text style={[styles.userName, { color: colors.textPrimary }]}>{user.name}</Text>
+            <Sparkles color={colors.warning} size={14} style={{ marginLeft: 4 }} />
           </View>
-          <Text style={styles.userTitle}>{user.title}</Text>
+          <Text style={[styles.userTitle, { color: colors.textSecondary }]}>{user.title}</Text>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
 
       {/* Badges & Actions */}
       <View style={styles.rightSection}>
         {/* Streak Badge */}
         <View style={styles.streakBadge}>
-          <Flame color={COLORS.danger} size={16} fill={COLORS.danger} />
-          <Text style={styles.streakText}>{user.streak}d</Text>
+          <Animated.View style={flameStyle}>
+            <Flame color={colors.danger} size={16} fill={colors.danger} />
+          </Animated.View>
+          <Text style={[styles.streakText, { color: colors.danger }]}>{user.streak}d</Text>
         </View>
 
         {/* Notification Bell */}
-        <TouchableOpacity
-          style={styles.iconButton}
+        <AnimatedPressable
+          style={[styles.iconButton, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
           onPress={handleNotificationPress}
-          activeOpacity={0.7}
+          activeScale={0.92}
         >
-          <Bell color={COLORS.textPrimary} size={20} />
-          <View style={styles.bellDot} />
-        </TouchableOpacity>
+          <Bell color={colors.textPrimary} size={20} />
+          <Animated.View style={[styles.bellDot, pulseStyle, { backgroundColor: colors.secondary }]} />
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -169,3 +216,4 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
   },
 });
+

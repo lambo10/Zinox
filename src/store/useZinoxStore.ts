@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { updateGlobalColors, ThemeMode } from '../theme/colors';
 import {
   syncProfileToSupabase,
   logBalanceMetricsToSupabase,
@@ -6,6 +7,7 @@ import {
   fetchUserProfileFromSupabase,
   fetchTodayBalanceLogs,
   signOutUser,
+  bootstrapSupabaseData,
 } from '../services/apiService';
 
 export interface Lesson {
@@ -74,12 +76,15 @@ interface ZinoxState {
   dailyQuote: DailyQuote;
   notificationsEnabled: boolean;
   activeCourseId: string | null;
+  themeMode: ThemeMode;
 
   // Actions
   setSession: (session: any) => void;
   signOut: () => Promise<void>;
   loadUserDataFromBackend: (userId: string) => Promise<void>;
 
+  setThemeMode: (mode: ThemeMode) => void;
+  toggleThemeMode: () => void;
   updateAvatar: (uri: string | null) => void;
   updateUserProfile: (name: string, title: string) => void;
   logWater: () => void;
@@ -264,30 +269,34 @@ const INITIAL_COURSES: UpskillCourse[] = [
   },
 ];
 
+const DEFAULT_USER_PROFILE: UserProfile = {
+  name: 'Zinox User',
+  title: 'Software Developer',
+  avatar: null,
+  streak: 1,
+  points: 100,
+  level: 'Zen Explorer',
+};
+
+const DEFAULT_METRICS: BalanceMetrics = {
+  waterDrank: 0,
+  waterGoal: 8,
+  eyeRests: 0,
+  eyeRestGoal: 5,
+  stretchesDone: 0,
+  stretchGoal: 3,
+  focusMinutes: 0,
+  screenTimeMinutes: 240,
+};
+
 export const useZinoxStore = create<ZinoxState>((set, get) => ({
   session: null,
   userId: null,
   userEmail: null,
   authLoading: true,
 
-  user: {
-    name: 'Alex Vance',
-    title: 'Senior Software Architect',
-    avatar: null,
-    streak: 14,
-    points: 1250,
-    level: 'Zen Master',
-  },
-  metrics: {
-    waterDrank: 5,
-    waterGoal: 8,
-    eyeRests: 3,
-    eyeRestGoal: 5,
-    stretchesDone: 2,
-    stretchGoal: 3,
-    focusMinutes: 110,
-    screenTimeMinutes: 280,
-  },
+  user: DEFAULT_USER_PROFILE,
+  metrics: DEFAULT_METRICS,
   courses: INITIAL_COURSES,
   dailyQuote: {
     quote: 'Balance is not something you find, it is something you create.',
@@ -296,6 +305,18 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
   },
   notificationsEnabled: true,
   activeCourseId: null,
+  themeMode: 'dark',
+
+  setThemeMode: (mode) => {
+    updateGlobalColors(mode);
+    set({ themeMode: mode });
+  },
+
+  toggleThemeMode: () => {
+    const nextMode: ThemeMode = get().themeMode === 'dark' ? 'light' : 'dark';
+    updateGlobalColors(nextMode);
+    set({ themeMode: nextMode });
+  },
 
   setSession: (session) => {
     const userId = session?.user?.id || null;
@@ -314,20 +335,44 @@ export const useZinoxStore = create<ZinoxState>((set, get) => ({
       userId: null,
       userEmail: null,
       authLoading: false,
+      user: DEFAULT_USER_PROFILE,
+      metrics: DEFAULT_METRICS,
     });
   },
 
   loadUserDataFromBackend: async (userId: string) => {
-    // 1. Fetch Profile
+    // 0. Bootstrap tables if empty
+    await bootstrapSupabaseData();
+
+    // 1. Fetch Profile from Supabase
     const backendProfile = await fetchUserProfileFromSupabase(userId);
     if (backendProfile) {
-      set((state) => ({ user: { ...state.user, ...backendProfile } }));
+      set({ user: backendProfile });
+    } else {
+      // Build clean initial profile specifically for this user
+      const sessionUser = get().session?.user;
+      const fallbackName = sessionUser?.user_metadata?.full_name || sessionUser?.email?.split('@')[0] || 'Zinox User';
+      const fallbackTitle = sessionUser?.user_metadata?.title || 'Software Developer';
+
+      const initialProfile: UserProfile = {
+        name: fallbackName,
+        title: fallbackTitle,
+        avatar: null,
+        streak: 1,
+        points: 100,
+        level: 'Zen Explorer',
+      };
+
+      set({ user: initialProfile });
+      await syncProfileToSupabase(userId, initialProfile);
     }
 
-    // 2. Fetch Balance Logs
+    // 2. Fetch Balance Logs from Supabase
     const backendLogs = await fetchTodayBalanceLogs(userId);
     if (backendLogs) {
       set((state) => ({ metrics: { ...state.metrics, ...backendLogs } }));
+    } else {
+      set({ metrics: DEFAULT_METRICS });
     }
   },
 

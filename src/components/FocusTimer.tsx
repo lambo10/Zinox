@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
 import { COLORS, SHADOWS } from '../theme/colors';
 import { Play, Pause, RotateCcw, Plus, Sparkles, Coffee, BookOpen } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
+import { SegmentedControl, SegmentOption } from './SegmentedControl';
+import { AnimatedPressable } from './AnimatedPressable';
 
 type TimerMode = 'focus' | 'break' | 'upskill';
 
@@ -12,6 +21,28 @@ export const FocusTimer: React.FC = () => {
   const [mode, setMode] = useState<TimerMode>('focus');
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Animation values
+  const pulseScale = useSharedValue(1);
+
+  useEffect(() => {
+    if (isRunning) {
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.06, { duration: 1200 }),
+          withTiming(1.0, { duration: 1200 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      pulseScale.value = withTiming(1, { duration: 300 });
+    }
+  }, [isRunning]);
+
+  const circlePulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -68,80 +99,73 @@ export const FocusTimer: React.FC = () => {
     setSecondsLeft((prev) => prev + mins * 60);
   };
 
+  const modeOptions: SegmentOption<TimerMode>[] = [
+    {
+      key: 'focus',
+      label: 'Focus (25m)',
+      icon: <Sparkles color={mode === 'focus' ? COLORS.primary : COLORS.textSecondary} size={14} />,
+    },
+    {
+      key: 'break',
+      label: 'Break (5m)',
+      icon: <Coffee color={mode === 'break' ? COLORS.secondary : COLORS.textSecondary} size={14} />,
+    },
+    {
+      key: 'upskill',
+      label: 'Upskill (15m)',
+      icon: <BookOpen color={mode === 'upskill' ? COLORS.success : COLORS.textSecondary} size={14} />,
+    },
+  ];
+
   return (
     <View style={[styles.container, SHADOWS.card]}>
-      {/* Modes Bar */}
-      <View style={styles.modesRow}>
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'focus' && styles.activeModeTab]}
-          onPress={() => switchMode('focus')}
-        >
-          <Sparkles color={mode === 'focus' ? COLORS.primary : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'focus' && styles.activeModeText]} numberOfLines={1}>
-            Focus (25m)
-          </Text>
-        </TouchableOpacity>
+      {/* Segmented Control Modes Bar */}
+      <SegmentedControl
+        options={modeOptions}
+        selectedKey={mode}
+        onSelect={switchMode}
+        containerStyle={{ width: '100%', marginBottom: 16 }}
+      />
 
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'break' && styles.activeModeTab]}
-          onPress={() => switchMode('break')}
-        >
-          <Coffee color={mode === 'break' ? COLORS.secondary : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'break' && styles.activeModeText]} numberOfLines={1}>
-            Break (5m)
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.modeTab, mode === 'upskill' && styles.activeModeTab]}
-          onPress={() => switchMode('upskill')}
-        >
-          <BookOpen color={mode === 'upskill' ? COLORS.success : COLORS.textSecondary} size={14} />
-          <Text style={[styles.modeText, mode === 'upskill' && styles.activeModeText]} numberOfLines={1}>
-            Upskill (15m)
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Clock Display */}
-      <View style={styles.clockCircle}>
+      {/* Clock Display with Animated Pulse Ring */}
+      <Animated.View style={[styles.clockCircle, circlePulseStyle]}>
         <Text style={styles.clockTime}>{formatTime(secondsLeft)}</Text>
         <Text style={styles.clockStatus}>{isRunning ? 'Session in progress...' : 'Ready to start'}</Text>
-      </View>
+      </Animated.View>
 
       {/* Action Controls */}
       <View style={styles.controlsRow}>
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.circleControl}
           onPress={() => switchMode(mode)}
-          activeOpacity={0.7}
+          activeScale={0.88}
         >
           <RotateCcw color={COLORS.textSecondary} size={18} />
-        </TouchableOpacity>
+        </AnimatedPressable>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={[
             styles.playButton,
             mode === 'break' && { backgroundColor: COLORS.secondary },
             mode === 'upskill' && { backgroundColor: COLORS.success },
           ]}
           onPress={() => setIsRunning(!isRunning)}
-          activeOpacity={0.8}
+          activeScale={0.92}
         >
           {isRunning ? (
             <Pause color="#FFFFFF" size={24} fill="#FFFFFF" />
           ) : (
             <Play color="#FFFFFF" size={24} fill="#FFFFFF" style={{ marginLeft: 3 }} />
           )}
-        </TouchableOpacity>
+        </AnimatedPressable>
 
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.circleControl}
           onPress={() => addExtraMinutes(5)}
-          activeOpacity={0.7}
+          activeScale={0.88}
         >
           <Plus color={COLORS.textSecondary} size={18} />
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -157,40 +181,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-  },
-  modesRow: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.cardBgLight,
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 16,
-    width: '100%',
-    justifyContent: 'space-between',
-    gap: 4,
-  },
-  modeTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 10,
-    gap: 4,
-  },
-  activeModeTab: {
-    backgroundColor: COLORS.cardBg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  modeText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  activeModeText: {
-    color: COLORS.textPrimary,
-    fontWeight: '700',
   },
   clockCircle: {
     width: 140,
@@ -244,3 +234,4 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
+

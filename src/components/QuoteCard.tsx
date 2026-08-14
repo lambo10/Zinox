@@ -1,18 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
 import { COLORS, SHADOWS } from '../theme/colors';
-import { Quote, RefreshCw, Share2 } from 'lucide-react-native';
+import { Quote, RefreshCw } from 'lucide-react-native';
 import { fetchDailyQuote } from '../services/apiService';
+import { AnimatedPressable } from './AnimatedPressable';
 
 export const QuoteCard: React.FC = () => {
   const { dailyQuote, setDailyQuote } = useZinoxStore();
   const [loading, setLoading] = useState(false);
 
+  // Animations
+  const quoteOpacity = useSharedValue(1);
+  const spinDegree = useSharedValue(0);
+
+  const animatedQuoteStyle = useAnimatedStyle(() => ({
+    opacity: quoteOpacity.value,
+  }));
+
+  const animatedSpinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spinDegree.value}deg` }],
+  }));
+
   const handleRefreshQuote = async () => {
     setLoading(true);
+    spinDegree.value = withTiming(spinDegree.value + 360, { duration: 700 });
+    quoteOpacity.value = withTiming(0.2, { duration: 250 });
+
     const newQuote = await fetchDailyQuote();
     setDailyQuote(newQuote);
+
+    quoteOpacity.value = withTiming(1.0, { duration: 350 });
     setLoading(false);
   };
 
@@ -23,22 +47,26 @@ export const QuoteCard: React.FC = () => {
           <Quote color={COLORS.secondary} size={14} />
           <Text style={styles.badgeText}>{dailyQuote.category || 'Daily Mindset'}</Text>
         </View>
-        <TouchableOpacity
+        <AnimatedPressable
           style={styles.refreshButton}
           onPress={handleRefreshQuote}
           disabled={loading}
-          activeOpacity={0.7}
+          activeScale={0.88}
         >
           {loading ? (
             <ActivityIndicator size="small" color={COLORS.secondary} />
           ) : (
-            <RefreshCw color={COLORS.textSecondary} size={16} />
+            <Animated.View style={animatedSpinStyle}>
+              <RefreshCw color={COLORS.textSecondary} size={16} />
+            </Animated.View>
           )}
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
-      <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
-      <Text style={styles.authorText}>— {dailyQuote.author}</Text>
+      <Animated.View style={animatedQuoteStyle}>
+        <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
+        <Text style={styles.authorText}>— {dailyQuote.author}</Text>
+      </Animated.View>
     </View>
   );
 };
@@ -95,3 +123,4 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 });
+
