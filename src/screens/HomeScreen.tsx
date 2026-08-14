@@ -129,21 +129,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={handleScheduleBreak}
             activeScale={0.96}
           >
-            <View style={styles.notifIconBg}>
-              <BellRing color={COLORS.primary} size={20} />
+            <View style={[styles.notifIconBg, { backgroundColor: colors.cardBg }]}>
+              <BellRing color={colors.primary} size={20} />
             </View>
             <View style={styles.notifTextGroup}>
-              <Text style={styles.notifTitle}>Test Native Push Notification</Text>
-              <Text style={styles.notifSub}>
+              <Text style={[styles.notifTitle, { color: colors.textPrimary }]}>Test Native Push Notification</Text>
+              <Text style={[styles.notifSub, { color: colors.textSecondary }]}>
                 Trigger instant break alert via Expo Notifications
               </Text>
             </View>
-            <ChevronRight color={COLORS.textSecondary} size={18} />
+            <ChevronRight color={colors.textSecondary} size={18} />
           </AnimatedPressable>
 
           {/* Focus Timer Section */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mindful Focus & Rest</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Mindful Focus & Rest</Text>
           </View>
           <FocusTimer />
         </Animated.View>
@@ -151,19 +151,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         {/* Section 3: Quotes & Featured Skill */}
         <Animated.View style={section3Style}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Daily Mindset Quote</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Daily Mindset Quote</Text>
           </View>
           <QuoteCard />
 
           {featuredCourse && (
             <View style={styles.featuredSection}>
               <View style={styles.sectionHeaderBetween}>
-                <Text style={styles.sectionTitle}>Today's Featured Skill</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Today's Featured Skill</Text>
                 <AnimatedPressable
                   onPress={() => navigation.navigate('Upskill')}
                   activeScale={0.92}
                 >
-                  <Text style={styles.seeAllText}>View All</Text>
+                  <Text style={[styles.seeAllText, { color: colors.primary }]}>View All</Text>
                 </AnimatedPressable>
               </View>
               <UpskillCard course={featuredCourse} onPress={handleCoursePress} />
@@ -180,7 +180,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     width: '100%',
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 90,
@@ -189,7 +188,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.cardBgLight,
     paddingVertical: 6,
     paddingHorizontal: 16,
     marginHorizontal: 20,
@@ -197,19 +195,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.2)',
     gap: 8,
   },
   apiBannerText: {
     fontSize: 11,
-    color: COLORS.secondary,
     fontWeight: '600',
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.success,
   },
   notificationActionCard: {
     flexDirection: 'row',
@@ -226,7 +221,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -237,11 +231,9 @@ const styles = StyleSheet.create({
   notifTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   notifSub: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
   sectionHeader: {
@@ -260,12 +252,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
   },
   seeAllText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
   },
   featuredSection: {
     marginTop: 6,

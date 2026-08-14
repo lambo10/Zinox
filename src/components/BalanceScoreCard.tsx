@@ -73,94 +73,94 @@ export const BalanceScoreCard: React.FC = () => {
       {/* Metrics Grid */}
       <View style={styles.metricsGrid}>
         {/* Hydration */}
-        <View style={styles.metricItem}>
+        <View style={[styles.metricItem, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
           <View style={styles.metricItemHeader}>
             <View style={[styles.iconBox, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-              <Droplet color={COLORS.secondary} size={16} />
+              <Droplet color={colors.secondary} size={16} />
             </View>
             <AnimatedPressable
-              style={styles.plusButton}
+              style={[styles.plusButton, { backgroundColor: colors.cardBg }]}
               onPress={logWater}
               activeScale={0.82}
             >
-              <Plus color={COLORS.secondary} size={14} />
+              <Plus color={colors.secondary} size={14} />
             </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel} numberOfLines={1}>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]} numberOfLines={1}>
               Hydration
             </Text>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {metrics.waterDrank}/{metrics.waterGoal} <Text style={styles.unitText}>glasses</Text>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]} numberOfLines={1}>
+              {metrics.waterDrank}/{metrics.waterGoal} <Text style={[styles.unitText, { color: colors.textMuted }]}>glasses</Text>
             </Text>
           </View>
         </View>
 
         {/* Eye Rest */}
-        <View style={styles.metricItem}>
+        <View style={[styles.metricItem, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
           <View style={styles.metricItemHeader}>
             <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Eye color={COLORS.primary} size={16} />
+              <Eye color={colors.primary} size={16} />
             </View>
             <AnimatedPressable
-              style={styles.plusButton}
+              style={[styles.plusButton, { backgroundColor: colors.cardBg }]}
               onPress={logEyeRest}
               activeScale={0.82}
             >
-              <Plus color={COLORS.primary} size={14} />
+              <Plus color={colors.primary} size={14} />
             </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel} numberOfLines={1}>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]} numberOfLines={1}>
               Eye Rest
             </Text>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {metrics.eyeRests}/{metrics.eyeRestGoal} <Text style={styles.unitText}>breaks</Text>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]} numberOfLines={1}>
+              {metrics.eyeRests}/{metrics.eyeRestGoal} <Text style={[styles.unitText, { color: colors.textMuted }]}>breaks</Text>
             </Text>
           </View>
         </View>
 
         {/* Stretch */}
-        <View style={styles.metricItem}>
+        <View style={[styles.metricItem, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
           <View style={styles.metricItemHeader}>
             <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <Activity color={COLORS.success} size={16} />
+              <Activity color={colors.success} size={16} />
             </View>
             <AnimatedPressable
-              style={styles.plusButton}
+              style={[styles.plusButton, { backgroundColor: colors.cardBg }]}
               onPress={logStretch}
               activeScale={0.82}
             >
-              <Plus color={COLORS.success} size={14} />
+              <Plus color={colors.success} size={14} />
             </AnimatedPressable>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel} numberOfLines={1}>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]} numberOfLines={1}>
               Posture Stretch
             </Text>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {metrics.stretchesDone}/{metrics.stretchGoal} <Text style={styles.unitText}>sessions</Text>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]} numberOfLines={1}>
+              {metrics.stretchesDone}/{metrics.stretchGoal} <Text style={[styles.unitText, { color: colors.textMuted }]}>sessions</Text>
             </Text>
           </View>
         </View>
 
         {/* Focus Time */}
-        <View style={styles.metricItem}>
+        <View style={[styles.metricItem, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
           <View style={styles.metricItemHeader}>
             <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-              <Clock color={COLORS.warning} size={16} />
+              <Clock color={colors.warning} size={16} />
             </View>
             <View style={styles.pointsBadge}>
-              <Zap color={COLORS.warning} size={10} fill={COLORS.warning} />
-              <Text style={styles.pointsText}>+{user.points}</Text>
+              <Zap color={colors.warning} size={10} fill={colors.warning} />
+              <Text style={[styles.pointsText, { color: colors.warning }]}>+{user.points}</Text>
             </View>
           </View>
           <View style={styles.metricTextGroup}>
-            <Text style={styles.metricLabel} numberOfLines={1}>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]} numberOfLines={1}>
               Focus Time
             </Text>
-            <Text style={styles.metricValue} numberOfLines={1}>
-              {metrics.focusMinutes} <Text style={styles.unitText}>mins</Text>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]} numberOfLines={1}>
+              {metrics.focusMinutes} <Text style={[styles.unitText, { color: colors.textMuted }]}>mins</Text>
             </Text>
           </View>
         </View>
@@ -171,13 +171,11 @@ export const BalanceScoreCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 18,
     marginHorizontal: 20,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
   topRow: {
     flexDirection: 'row',
@@ -188,37 +186,30 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   scoreSublabel: {
     fontSize: 11,
-    color: COLORS.secondary,
     fontWeight: '600',
     marginTop: 2,
   },
   scorePill: {
-    backgroundColor: COLORS.cardBgLight,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.primary,
   },
   scoreNumber: {
     fontSize: 16,
     fontWeight: '900',
-    color: COLORS.primary,
   },
   meterContainer: {
     height: 8,
-    backgroundColor: COLORS.cardBgLight,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 16,
   },
   meterFill: {
     height: '100%',
-    backgroundColor: COLORS.primary,
     borderRadius: 4,
   },
   metricsGrid: {
@@ -229,11 +220,9 @@ const styles = StyleSheet.create({
   },
   metricItem: {
     width: '48%',
-    backgroundColor: COLORS.cardBgLight,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   metricItemHeader: {
     flexDirection: 'row',
@@ -252,7 +241,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -266,7 +254,6 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     fontSize: 10,
-    color: COLORS.warning,
     fontWeight: '700',
     marginLeft: 2,
   },
@@ -275,18 +262,15 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     fontWeight: '500',
     marginBottom: 2,
   },
   metricValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.textPrimary,
   },
   unitText: {
     fontSize: 10,
-    color: COLORS.textMuted,
     fontWeight: '400',
   },
 });

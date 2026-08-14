@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useZinoxStore, UpskillCourse, Lesson } from '../store/useZinoxStore';
 import { UpskillCard } from '../components/UpskillCard';
-import { COLORS, SHADOWS, SPRING_CONFIG } from '../theme/colors';
+import { COLORS, SHADOWS, SPRING_CONFIG, useThemeColors } from '../theme/colors';
 import {
   BookOpen,
   CheckCircle2,
@@ -33,6 +33,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 type CategoryFilter = 'All' | 'AI & Code' | 'Leadership' | 'Architecture' | 'Wellness';
 
 export const UpskillScreen: React.FC = () => {
+  const colors = useThemeColors();
   const { courses, completeLesson, completeCourseQuiz } = useZinoxStore();
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
   const [activeCourse, setActiveCourse] = useState<UpskillCourse | null>(null);
@@ -155,14 +156,14 @@ export const UpskillScreen: React.FC = () => {
   }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Title */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <Text style={styles.title}>Micro-Upskilling Hub</Text>
-          <Sparkles color={COLORS.primary} size={20} />
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Micro-Upskilling Hub</Text>
+          <Sparkles color={colors.primary} size={20} />
         </View>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           10-minute high-impact modules designed for modern tech leaders.
         </Text>
       </View>
@@ -177,11 +178,21 @@ export const UpskillScreen: React.FC = () => {
           {categories.map((cat) => (
             <AnimatedPressable
               key={cat}
-              style={[styles.categoryPill, selectedCategory === cat && styles.activePill]}
+              style={[
+                styles.categoryPill,
+                { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder },
+                selectedCategory === cat && { backgroundColor: colors.primary, borderColor: colors.primary },
+              ]}
               onPress={() => setSelectedCategory(cat)}
               activeScale={0.92}
             >
-              <Text style={[styles.pillText, selectedCategory === cat && styles.activePillText]}>
+              <Text
+                style={[
+                  styles.pillText,
+                  { color: colors.textPrimary },
+                  selectedCategory === cat && { color: '#FFFFFF', fontWeight: '800' },
+                ]}
+              >
                 {cat}
               </Text>
             </AnimatedPressable>
@@ -203,76 +214,78 @@ export const UpskillScreen: React.FC = () => {
         transparent={false}
         onRequestClose={() => setActiveCourse(null)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           {activeCourse && (
             <View style={{ flex: 1 }}>
               {/* Modal Top Header */}
-              <View style={styles.modalHeader}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.cardBorder }]}>
                 <AnimatedPressable
                   onPress={() => setActiveCourse(null)}
-                  style={styles.closeBtn}
+                  style={[styles.closeBtn, { backgroundColor: colors.cardBg }]}
                   activeScale={0.88}
                 >
-                  <X color={COLORS.textPrimary} size={22} />
+                  <X color={colors.textPrimary} size={22} />
                 </AnimatedPressable>
-                <Text style={styles.modalCategory}>{activeCourse.category}</Text>
+                <Text style={[styles.modalCategory, { color: colors.secondary }]}>{activeCourse.category}</Text>
                 <View style={styles.placeholderBox} />
               </View>
 
               {!showQuiz ? (
                 <ScrollView contentContainerStyle={styles.modalScroll}>
-                  <Text style={styles.modalCourseTitle}>{activeCourse.title}</Text>
-                  <Text style={styles.modalDesc}>{activeCourse.description}</Text>
+                  <Text style={[styles.modalCourseTitle, { color: colors.textPrimary }]}>{activeCourse.title}</Text>
+                  <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>{activeCourse.description}</Text>
 
                   {/* Lessons List */}
-                  <Text style={styles.sectionHeading}>Module Lessons</Text>
+                  <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Module Lessons</Text>
                   {activeCourse.lessons.map((lesson, idx) => (
                     <AnimatedPressable
                       key={lesson.id}
                       style={[
                         styles.lessonCard,
-                        activeLesson?.id === lesson.id && styles.activeLessonCard,
+                        { backgroundColor: colors.cardBg, borderColor: colors.cardBorder },
+                        activeLesson?.id === lesson.id && { borderColor: colors.primary, backgroundColor: colors.cardBgLight },
                       ]}
                       onPress={() => setActiveLesson(lesson)}
                       activeScale={0.97}
                     >
                       <View style={styles.lessonLeft}>
                         {lesson.completed ? (
-                          <CheckCircle2 color={COLORS.success} size={20} />
+                          <CheckCircle2 color={colors.success} size={20} />
                         ) : (
-                          <PlayCircle color={COLORS.primary} size={20} />
+                          <PlayCircle color={colors.primary} size={20} />
                         )}
-                        <Text style={styles.lessonTitle}>
+                        <Text style={[styles.lessonTitle, { color: colors.textPrimary }]}>
                           {idx + 1}. {lesson.title}
                         </Text>
                       </View>
-                      <Text style={styles.lessonDuration}>{lesson.duration}</Text>
+                      <Text style={[styles.lessonDuration, { color: colors.textMuted }]}>{lesson.duration}</Text>
                     </AnimatedPressable>
                   ))}
 
                   {/* Active Lesson Reader Content */}
                   {activeLesson && (
-                    <View style={styles.readerBox}>
-                      <Text style={styles.readerHeading}>{activeLesson.title}</Text>
-                      <Text style={styles.readerContent}>{activeLesson.content}</Text>
+                    <View style={[styles.readerBox, { backgroundColor: colors.cardBg, borderColor: colors.primary }]}>
+                      <Text style={[styles.readerHeading, { color: colors.textPrimary }]}>{activeLesson.title}</Text>
+                      <Text style={[styles.readerContent, { color: colors.textSecondary }]}>{activeLesson.content}</Text>
 
                       <AnimatedPressable
                         style={[
                           styles.completeLessonBtn,
-                          activeLesson.completed && { backgroundColor: COLORS.cardBgLight },
+                          { backgroundColor: colors.primary },
+                          activeLesson.completed && { backgroundColor: colors.cardBgLight },
                         ]}
                         onPress={() => handleCompleteLesson(activeLesson)}
                         disabled={activeLesson.completed}
                         activeScale={0.96}
                       >
                         <CheckCircle2
-                          color={activeLesson.completed ? COLORS.success : '#FFFFFF'}
+                          color={activeLesson.completed ? colors.success : '#FFFFFF'}
                           size={18}
                         />
                         <Text
                           style={[
                             styles.completeLessonBtnText,
-                            activeLesson.completed && { color: COLORS.success },
+                            activeLesson.completed && { color: colors.success },
                           ]}
                         >
                           {activeLesson.completed ? 'Lesson Completed (+50 XP)' : 'Mark Lesson Complete'}
@@ -284,7 +297,7 @@ export const UpskillScreen: React.FC = () => {
                   {/* Start Quiz Button */}
                   {activeCourse.quiz && activeCourse.quiz.length > 0 && (
                     <AnimatedPressable
-                      style={styles.quizStartBtn}
+                      style={[styles.quizStartBtn, { backgroundColor: colors.success }]}
                       onPress={handleStartQuiz}
                       activeScale={0.96}
                     >
@@ -298,15 +311,15 @@ export const UpskillScreen: React.FC = () => {
                 <View style={styles.quizContainer}>
                   <View style={styles.quizHeader}>
                     <Animated.View style={trophyAnimStyle}>
-                      <Award color={COLORS.warning} size={24} />
+                      <Award color={colors.warning} size={24} />
                     </Animated.View>
-                    <Text style={styles.quizProgressText}>
+                    <Text style={[styles.quizProgressText, { color: colors.warning }]}>
                       Question {currentQuizIndex + 1} of {activeCourse.quiz.length}
                     </Text>
                   </View>
 
                   <Animated.View style={quizAnimStyle}>
-                    <Text style={styles.questionText}>
+                    <Text style={[styles.questionText, { color: colors.textPrimary }]}>
                       {activeCourse.quiz[currentQuizIndex].question}
                     </Text>
 
@@ -315,7 +328,10 @@ export const UpskillScreen: React.FC = () => {
                       {activeCourse.quiz[currentQuizIndex].options.map((opt, i) => {
                         const isSelected = selectedOption === i;
                         const isCorrect = i === activeCourse.quiz[currentQuizIndex].correctIndex;
-                        let optionStyle: any = styles.quizOption;
+                        let optionStyle: any = [
+                          styles.quizOption,
+                          { backgroundColor: colors.cardBg, borderColor: colors.cardBorder },
+                        ];
 
                         if (selectedOption !== null) {
                           if (isCorrect) optionStyle = [styles.quizOption, styles.correctOption];
@@ -330,7 +346,7 @@ export const UpskillScreen: React.FC = () => {
                             disabled={selectedOption !== null}
                             activeScale={0.97}
                           >
-                            <Text style={styles.optionText}>{opt}</Text>
+                            <Text style={[styles.optionText, { color: colors.textPrimary }]}>{opt}</Text>
                           </AnimatedPressable>
                         );
                       })}
@@ -338,13 +354,13 @@ export const UpskillScreen: React.FC = () => {
 
                     {/* Explanation feedback */}
                     {selectedOption !== null && (
-                      <View style={styles.explanationBox}>
-                        <Text style={styles.explanationText}>
+                      <View style={[styles.explanationBox, { backgroundColor: colors.cardBgLight }]}>
+                        <Text style={[styles.explanationText, { color: colors.textSecondary }]}>
                           💡 {activeCourse.quiz[currentQuizIndex].explanation}
                         </Text>
 
                         <AnimatedPressable
-                          style={styles.nextQuizBtn}
+                          style={[styles.nextQuizBtn, { backgroundColor: colors.primary }]}
                           onPress={handleNextQuestion}
                           activeScale={0.96}
                         >

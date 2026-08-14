@@ -12,13 +12,15 @@
       "backgroundColor": "#0B0D17"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zinox.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B0D17"
-      }
+      },
+      "package": "com.zinox.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",

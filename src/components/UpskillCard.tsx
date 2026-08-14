@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { UpskillCourse } from '../store/useZinoxStore';
-import { COLORS, SHADOWS, SPRING_CONFIG } from '../theme/colors';
+import { COLORS, SHADOWS, SPRING_CONFIG, useThemeColors } from '../theme/colors';
 import { CheckCircle, Clock, ChevronRight } from 'lucide-react-native';
 import { AnimatedPressable } from './AnimatedPressable';
 
@@ -17,18 +17,20 @@ interface UpskillCardProps {
 }
 
 export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => {
+  const colors = useThemeColors();
+
   const getCategoryColor = (category: UpskillCourse['category']) => {
     switch (category) {
       case 'AI & Code':
-        return COLORS.primary;
+        return colors.primary;
       case 'Leadership':
-        return COLORS.warning;
+        return colors.warning;
       case 'Architecture':
-        return COLORS.secondary;
+        return colors.secondary;
       case 'Wellness':
-        return COLORS.success;
+        return colors.success;
       default:
-        return COLORS.primary;
+        return colors.primary;
     }
   };
 
@@ -55,7 +57,7 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
 
   return (
     <AnimatedPressable
-      style={[styles.container, SHADOWS.card]}
+      style={[styles.container, SHADOWS.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}
       onPress={() => onPress(course)}
       activeScale={0.97}
     >
@@ -65,20 +67,20 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
         </View>
 
         <View style={styles.durationBadge}>
-          <Clock color={COLORS.textSecondary} size={12} />
-          <Text style={styles.durationText}>{course.duration}</Text>
+          <Clock color={colors.textSecondary} size={12} />
+          <Text style={[styles.durationText, { color: colors.textSecondary }]}>{course.duration}</Text>
         </View>
       </View>
 
-      <Text style={styles.title}>{course.title}</Text>
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{course.title}</Text>
+      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
         {course.description}
       </Text>
 
       {/* Progress & Action Bar */}
       <View style={styles.bottomRow}>
         <View style={styles.progressContainer}>
-          <View style={styles.progressBarTrack}>
+          <View style={[styles.progressBarTrack, { backgroundColor: colors.cardBgLight }]}>
             <Animated.View
               style={[
                 styles.progressBarFill,
@@ -87,16 +89,16 @@ export const UpskillCard: React.FC<UpskillCardProps> = ({ course, onPress }) => 
               ]}
             />
           </View>
-          <Text style={styles.progressText}>{course.progress}% completed</Text>
+          <Text style={[styles.progressText, { color: colors.textMuted }]}>{course.progress}% completed</Text>
         </View>
 
-        <View style={styles.actionButton}>
+        <View style={[styles.actionButton, { backgroundColor: colors.cardBgLight }]}>
           {course.completed ? (
             <Animated.View style={animatedIconStyle}>
-              <CheckCircle color={COLORS.success} size={20} />
+              <CheckCircle color={colors.success} size={20} />
             </Animated.View>
           ) : (
-            <ChevronRight color={COLORS.textPrimary} size={20} />
+            <ChevronRight color={colors.textPrimary} size={20} />
           )}
         </View>
       </View>

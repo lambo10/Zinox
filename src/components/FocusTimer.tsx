@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, useThemeColors } from '../theme/colors';
 import { Play, Pause, RotateCcw, Plus, Sparkles, Coffee, BookOpen } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
 import { SegmentedControl, SegmentOption } from './SegmentedControl';
@@ -18,6 +18,7 @@ type TimerMode = 'focus' | 'break' | 'upskill';
 
 export const FocusTimer: React.FC = () => {
   const { addFocusMinutes, logEyeRest } = useZinoxStore();
+  const colors = useThemeColors();
   const [mode, setMode] = useState<TimerMode>('focus');
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -29,8 +30,8 @@ export const FocusTimer: React.FC = () => {
     if (isRunning) {
       pulseScale.value = withRepeat(
         withSequence(
-          withTiming(1.06, { duration: 1200 }),
-          withTiming(1.0, { duration: 1200 })
+          withTiming(1.05, { duration: 1000 }),
+          withTiming(1.0, { duration: 1000 })
         ),
         -1,
         true
@@ -45,38 +46,35 @@ export const FocusTimer: React.FC = () => {
   }));
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
         setSecondsLeft((prev) => prev - 1);
       }, 1000);
     } else if (secondsLeft === 0 && isRunning) {
       setIsRunning(false);
-      handleComplete();
+      handleTimerCompletion();
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [isRunning, secondsLeft]);
 
-  const handleComplete = () => {
+  const handleTimerCompletion = () => {
     if (mode === 'focus') {
       addFocusMinutes(25);
       triggerLocalNotification(
-        'Focus Session Completed! 🎉',
-        'Awesome work! You earned 50 Zinox points. Time to take a 5-minute break.'
+        'Focus Session Completed! 🎯',
+        '25 minutes of deep work logged. Earned +50 Zinox XP points!'
       );
     } else if (mode === 'break') {
       logEyeRest();
       triggerLocalNotification(
-        'Mindful Rest Completed! 🧘',
-        'Your eyes and posture are refreshed. Ready for your next focus session.'
+        'Rest Break Completed! ☕',
+        'Your 5-minute ergonomic break is finished. Re-energized for deep focus!'
       );
     } else {
-      addFocusMinutes(15);
       triggerLocalNotification(
-        'Micro-Upskill Session Complete! 📚',
-        'Great job expanding your knowledge today.'
+        'Upskill Learning Session Finished! 📚',
+        'Great job advancing your technical skills.'
       );
     }
   };
@@ -103,22 +101,22 @@ export const FocusTimer: React.FC = () => {
     {
       key: 'focus',
       label: 'Focus (25m)',
-      icon: <Sparkles color={mode === 'focus' ? COLORS.primary : COLORS.textSecondary} size={14} />,
+      icon: <Sparkles color={mode === 'focus' ? colors.primary : colors.textSecondary} size={14} />,
     },
     {
       key: 'break',
       label: 'Break (5m)',
-      icon: <Coffee color={mode === 'break' ? COLORS.secondary : COLORS.textSecondary} size={14} />,
+      icon: <Coffee color={mode === 'break' ? colors.secondary : colors.textSecondary} size={14} />,
     },
     {
       key: 'upskill',
       label: 'Upskill (15m)',
-      icon: <BookOpen color={mode === 'upskill' ? COLORS.success : COLORS.textSecondary} size={14} />,
+      icon: <BookOpen color={mode === 'upskill' ? colors.success : colors.textSecondary} size={14} />,
     },
   ];
 
   return (
-    <View style={[styles.container, SHADOWS.card]}>
+    <View style={[styles.container, SHADOWS.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
       {/* Segmented Control Modes Bar */}
       <SegmentedControl
         options={modeOptions}
@@ -128,19 +126,19 @@ export const FocusTimer: React.FC = () => {
       />
 
       {/* Clock Display with Animated Pulse Ring */}
-      <Animated.View style={[styles.clockCircle, circlePulseStyle]}>
-        <Text style={styles.clockTime}>{formatTime(secondsLeft)}</Text>
-        <Text style={styles.clockStatus}>{isRunning ? 'Session in progress...' : 'Ready to start'}</Text>
+      <Animated.View style={[styles.clockCircle, circlePulseStyle, { backgroundColor: colors.cardBgLight, borderColor: colors.primary }]}>
+        <Text style={[styles.clockTime, { color: colors.textPrimary }]}>{formatTime(secondsLeft)}</Text>
+        <Text style={[styles.clockStatus, { color: colors.textSecondary }]}>{isRunning ? 'Session in progress...' : 'Ready to start'}</Text>
       </Animated.View>
 
       {/* Action Controls */}
       <View style={styles.controlsRow}>
         <AnimatedPressable
-          style={styles.circleControl}
+          style={[styles.circleControl, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}
           onPress={() => switchMode(mode)}
           activeScale={0.88}
         >
-          <RotateCcw color={COLORS.textSecondary} size={18} />
+          <RotateCcw color={colors.textSecondary} size={18} />
         </AnimatedPressable>
 
         <AnimatedPressable

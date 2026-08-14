@@ -8,13 +8,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
 import { FocusTimer } from '../components/FocusTimer';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, useThemeColors } from '../theme/colors';
 import { Droplet, Eye, Activity, Clock, ShieldCheck, HeartPulse, RefreshCw } from 'lucide-react-native';
 import { triggerLocalNotification } from '../services/notificationService';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 
 export const BalanceScreen: React.FC = () => {
   const { metrics, logWater, logEyeRest, logStretch, resetDailyMetrics } = useZinoxStore();
+  const colors = useThemeColors();
 
   // Animations
   const fadeHeader = useSharedValue(0);
@@ -44,93 +45,99 @@ export const BalanceScreen: React.FC = () => {
   }));
 
   const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${resetSpin.value}deg` }],
+    transform: [{ rotate: `${resetSpin.value * 360}deg` }],
   }));
 
   const handleReset = () => {
-    resetSpin.value = withTiming(resetSpin.value + 360, { duration: 600 });
+    resetSpin.value = withTiming(1, { duration: 500 }, () => {
+      resetSpin.value = 0;
+    });
     resetDailyMetrics();
+    triggerLocalNotification(
+      'Daily Metrics Reset 🔄',
+      'Your work-life balance logs for today have been reset.'
+    );
   };
 
   const handleQuickRestAlert = () => {
     logEyeRest();
     triggerLocalNotification(
-      '20-20-20 Eye Rest Completed 👁️',
-      'Look at an object 20 feet away for 20 seconds. Great job relaxing your ocular muscles!'
+      'Eye Rest Logged! 👁️',
+      '20-20-20 rule rest completed. Earned +40 Zinox XP.'
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View style={[styles.header, headerStyle]}>
-        <Text style={styles.title}>Work-Life Balance Hub</Text>
-        <Text style={styles.subtitle}>
-          Harmonize deep coding focus with physical ergonomics and eye care.
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Work-Life Balance Hub</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Real-time wellness tracking & developer ergonomic management.
         </Text>
       </Animated.View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Overall Wellness Summary Card */}
-        <Animated.View style={[styles.summaryCard, SHADOWS.card, summaryStyle]}>
+        <Animated.View style={[styles.summaryCard, SHADOWS.card, summaryStyle, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
           <View style={styles.summaryTop}>
-            <View style={styles.iconCircle}>
-              <HeartPulse color={COLORS.success} size={24} />
+            <View style={[styles.iconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <HeartPulse color={colors.success} size={24} />
             </View>
             <View style={styles.summaryTextGroup}>
-              <Text style={styles.summaryHeading}>Daily Balance Health</Text>
-              <Text style={styles.summarySub}>Optimal Ergonomic Rhythm</Text>
+              <Text style={[styles.summaryHeading, { color: colors.textPrimary }]}>Daily Balance Health</Text>
+              <Text style={[styles.summarySub, { color: colors.textSecondary }]}>Optimal Ergonomic Rhythm</Text>
             </View>
-            <AnimatedPressable onPress={handleReset} style={styles.resetBtn} activeScale={0.88}>
+            <AnimatedPressable onPress={handleReset} style={[styles.resetBtn, { backgroundColor: colors.cardBgLight }]} activeScale={0.88}>
               <Animated.View style={spinStyle}>
-                <RefreshCw color={COLORS.textSecondary} size={16} />
+                <RefreshCw color={colors.textSecondary} size={16} />
               </Animated.View>
             </AnimatedPressable>
           </View>
 
           <View style={styles.gridContainer}>
             {/* Water */}
-            <View style={styles.gridCard}>
-              <Droplet color={COLORS.secondary} size={20} />
-              <Text style={styles.gridVal}>
+            <View style={[styles.gridCard, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
+              <Droplet color={colors.secondary} size={20} />
+              <Text style={[styles.gridVal, { color: colors.textPrimary }]}>
                 {metrics.waterDrank}/{metrics.waterGoal}
               </Text>
-              <Text style={styles.gridLbl}>Water Glasses</Text>
-              <AnimatedPressable style={styles.gridAddBtn} onPress={logWater} activeScale={0.92}>
+              <Text style={[styles.gridLbl, { color: colors.textSecondary }]}>Water Glasses</Text>
+              <AnimatedPressable style={[styles.gridAddBtn, { backgroundColor: colors.primary }]} onPress={logWater} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Log</Text>
               </AnimatedPressable>
             </View>
 
             {/* Eye Rests */}
-            <View style={styles.gridCard}>
-              <Eye color={COLORS.primary} size={20} />
-              <Text style={styles.gridVal}>
+            <View style={[styles.gridCard, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
+              <Eye color={colors.primary} size={20} />
+              <Text style={[styles.gridVal, { color: colors.textPrimary }]}>
                 {metrics.eyeRests}/{metrics.eyeRestGoal}
               </Text>
-              <Text style={styles.gridLbl}>Eye Rests</Text>
-              <AnimatedPressable style={styles.gridAddBtn} onPress={handleQuickRestAlert} activeScale={0.92}>
+              <Text style={[styles.gridLbl, { color: colors.textSecondary }]}>Eye Rests</Text>
+              <AnimatedPressable style={[styles.gridAddBtn, { backgroundColor: colors.primary }]} onPress={handleQuickRestAlert} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Rest</Text>
               </AnimatedPressable>
             </View>
 
             {/* Stretches */}
-            <View style={styles.gridCard}>
-              <Activity color={COLORS.success} size={20} />
-              <Text style={styles.gridVal}>
+            <View style={[styles.gridCard, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
+              <Activity color={colors.success} size={20} />
+              <Text style={[styles.gridVal, { color: colors.textPrimary }]}>
                 {metrics.stretchesDone}/{metrics.stretchGoal}
               </Text>
-              <Text style={styles.gridLbl}>Stretches</Text>
-              <AnimatedPressable style={styles.gridAddBtn} onPress={logStretch} activeScale={0.92}>
+              <Text style={[styles.gridLbl, { color: colors.textSecondary }]}>Stretches</Text>
+              <AnimatedPressable style={[styles.gridAddBtn, { backgroundColor: colors.primary }]} onPress={logStretch} activeScale={0.92}>
                 <Text style={styles.gridAddText}>+ Stretch</Text>
               </AnimatedPressable>
             </View>
 
             {/* Focus Mins */}
-            <View style={styles.gridCard}>
-              <Clock color={COLORS.warning} size={20} />
-              <Text style={styles.gridVal}>{metrics.focusMinutes}m</Text>
-              <Text style={styles.gridLbl}>Deep Focus</Text>
-              <View style={styles.badgeMuted}>
-                <Text style={styles.badgeMutedText}>Active</Text>
+            <View style={[styles.gridCard, { backgroundColor: colors.cardBgLight, borderColor: colors.cardBorder }]}>
+              <Clock color={colors.warning} size={20} />
+              <Text style={[styles.gridVal, { color: colors.textPrimary }]}>{metrics.focusMinutes}m</Text>
+              <Text style={[styles.gridLbl, { color: colors.textSecondary }]}>Deep Focus</Text>
+              <View style={[styles.badgeMuted, { backgroundColor: colors.cardBg }]}>
+                <Text style={[styles.badgeMutedText, { color: colors.textMuted }]}>Active</Text>
               </View>
             </View>
           </View>
@@ -138,16 +145,16 @@ export const BalanceScreen: React.FC = () => {
 
         {/* Interactive Focus & Break Timer */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pomodoro & Mindful Rest Timer</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pomodoro & Mindful Rest Timer</Text>
         </View>
         <FocusTimer />
 
         {/* Ergonomic Tips Card */}
-        <Animated.View style={[styles.tipsCard, tipsStyle]}>
-          <ShieldCheck color={COLORS.secondary} size={22} />
+        <Animated.View style={[styles.tipsCard, tipsStyle, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
+          <ShieldCheck color={colors.secondary} size={22} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.tipsTitle}>20-20-20 Rule for Developer Eye Care</Text>
-            <Text style={styles.tipsBody}>
+            <Text style={[styles.tipsTitle, { color: colors.textPrimary }]}>20-20-20 Rule for Developer Eye Care</Text>
+            <Text style={[styles.tipsBody, { color: colors.textSecondary }]}>
               Every 20 minutes of screen time, look at an object 20 feet away for 20 seconds. Reduces dry eyes and fatigue by 60%.
             </Text>
           </View>
@@ -162,7 +169,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     width: '100%',
-    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -172,24 +178,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: COLORS.textSecondary,
     marginTop: 4,
   },
   scrollContent: {
     paddingBottom: 90,
   },
   summaryCard: {
-    backgroundColor: COLORS.cardBg,
     borderRadius: 20,
     padding: 18,
     marginHorizontal: 20,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
   summaryTop: {
     flexDirection: 'row',
@@ -200,7 +202,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -211,18 +212,15 @@ const styles = StyleSheet.create({
   summaryHeading: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   summarySub: {
     fontSize: 12,
-    color: COLORS.success,
     fontWeight: '600',
   },
   resetBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.cardBgLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -234,46 +232,38 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: '48%',
-    backgroundColor: COLORS.cardBgLight,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   gridVal: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.textPrimary,
     marginTop: 8,
   },
   gridLbl: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     marginTop: 2,
     marginBottom: 10,
   },
   gridAddBtn: {
-    backgroundColor: COLORS.cardBg,
     paddingVertical: 6,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
   gridAddText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#FFFFFF',
   },
   badgeMuted: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingVertical: 6,
     borderRadius: 8,
     alignItems: 'center',
   },
   badgeMutedText: {
     fontSize: 11,
-    color: COLORS.textMuted,
     fontWeight: '600',
   },
   sectionHeader: {
@@ -284,27 +274,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
   },
   tipsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
     marginHorizontal: 20,
     marginVertical: 14,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
   },
   tipsTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   tipsBody: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     lineHeight: 16,
     marginTop: 2,
   },

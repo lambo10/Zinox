@@ -7,13 +7,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useZinoxStore } from '../store/useZinoxStore';
-import { COLORS, SHADOWS } from '../theme/colors';
+import { COLORS, SHADOWS, useThemeColors } from '../theme/colors';
 import { Quote, RefreshCw } from 'lucide-react-native';
 import { fetchDailyQuote } from '../services/apiService';
 import { AnimatedPressable } from './AnimatedPressable';
 
 export const QuoteCard: React.FC = () => {
   const { dailyQuote, setDailyQuote } = useZinoxStore();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(false);
 
   // Animations
@@ -41,31 +42,31 @@ export const QuoteCard: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, SHADOWS.card]}>
+    <View style={[styles.container, SHADOWS.card, { backgroundColor: colors.cardBg, borderColor: colors.cardBorder }]}>
       <View style={styles.headerRow}>
-        <View style={styles.badge}>
-          <Quote color={COLORS.secondary} size={14} />
-          <Text style={styles.badgeText}>{dailyQuote.category || 'Daily Mindset'}</Text>
+        <View style={[styles.badge, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
+          <Quote color={colors.secondary} size={14} />
+          <Text style={[styles.badgeText, { color: colors.secondary }]}>{dailyQuote.category || 'Daily Mindset'}</Text>
         </View>
         <AnimatedPressable
-          style={styles.refreshButton}
+          style={[styles.refreshButton, { backgroundColor: colors.cardBgLight }]}
           onPress={handleRefreshQuote}
           disabled={loading}
           activeScale={0.88}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={COLORS.secondary} />
+            <ActivityIndicator size="small" color={colors.secondary} />
           ) : (
             <Animated.View style={animatedSpinStyle}>
-              <RefreshCw color={COLORS.textSecondary} size={16} />
+              <RefreshCw color={colors.textSecondary} size={16} />
             </Animated.View>
           )}
         </AnimatedPressable>
       </View>
 
       <Animated.View style={animatedQuoteStyle}>
-        <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
-        <Text style={styles.authorText}>— {dailyQuote.author}</Text>
+        <Text style={[styles.quoteText, { color: colors.textPrimary }]}>"{dailyQuote.quote}"</Text>
+        <Text style={[styles.authorText, { color: colors.textSecondary }]}>— {dailyQuote.author}</Text>
       </Animated.View>
     </View>
   );
