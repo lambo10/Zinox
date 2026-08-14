@@ -16,6 +16,7 @@ import { COLORS, SHADOWS } from '../theme/colors';
 import { Mail, Lock, User, Briefcase, Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { signInUser, signUpUser } from '../services/apiService';
 import { triggerLocalNotification } from '../services/notificationService';
+import { useZinoxStore } from '../store/useZinoxStore';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -45,13 +46,14 @@ export const AuthScreen: React.FC = () => {
       const res = await signInUser(email.trim(), password.trim());
       setLoading(false);
 
-      if (res.success) {
+      if (res.success && res.data?.session) {
+        useZinoxStore.getState().setSession(res.data.session);
         triggerLocalNotification(
           'Welcome back to Zinox! ⚡',
           'Successfully authenticated with Supabase.'
         );
       } else {
-        Alert.alert('Authentication Failed', res.error || 'Invalid credentials');
+        Alert.alert('Authentication Failed', res.error || 'Invalid credentials or email unconfirmed');
       }
     } else {
       const res = await signUpUser(
@@ -63,10 +65,17 @@ export const AuthScreen: React.FC = () => {
       setLoading(false);
 
       if (res.success) {
-        triggerLocalNotification(
-          'Welcome to Zinox! 🚀',
-          'Your account has been created successfully. Loading your profile...'
-        );
+        if (res.session) {
+          useZinoxStore.getState().setSession(res.session);
+          useZinoxStore.getState().updateUserProfile(
+            name.trim() || 'Lambert Nnadi',
+            title.trim() || 'Senior Software Developer'
+          );
+          triggerLocalNotification(
+            'Welcome to Zinox! 🚀',
+            `Account created for ${name.trim() || 'Lambert Nnadi'}.`
+          );
+        }
       } else {
         Alert.alert('Account Creation Failed', res.error || 'Could not create account');
       }
